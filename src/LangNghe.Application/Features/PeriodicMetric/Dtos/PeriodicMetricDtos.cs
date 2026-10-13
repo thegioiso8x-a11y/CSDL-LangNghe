@@ -1,0 +1,165 @@
+using System;
+using LangNghe.Application.Common;
+
+namespace LangNghe.Application.Features.PeriodicMetric.Dtos;
+
+public record MetricDto(
+    long Id,
+    int CraftVillageId,
+    string? VillageName,
+    int CommuneId,
+    string? CommuneName,
+    int ProvinceId,
+    string? ProvinceName,
+    string ReportPeriod,
+    byte PeriodType,
+    Guid? ImportBatchId,
+    bool BrandProtection,
+    bool HasOCOP3Star,
+    string? ProductionProcess,
+    decimal ExportRate,
+    int? ExportCategoryId,
+    string? ExportCategoryName,
+    decimal ImportMaterialRate,
+    int HouseholdCount,
+    int EnterpriseCount,
+    decimal? ProductionArea,
+    byte? ActiveMonths,
+    decimal? Output,
+    int? OutputUnitId,
+    string? OutputUnitName,
+    decimal Revenue,
+    decimal? GrowthRate,
+    int TotalLabor,
+    decimal? TrainedLaborRate,
+    int ArtisanCount,
+    string? TrainingNeed,
+    decimal? AvgIncome,
+    decimal? DigitalLevel,
+    bool HasWebsite,
+    bool HasMuseum,
+    bool HasDocArchive,
+    bool HasWasteCollection,
+    bool HasWasteWaterSystem,
+    bool HasSolidWasteSystem,
+    bool HasEmissionTreatment,
+    bool HasDedicatedZone,
+    bool HasSupportPolicy,
+    decimal? SupportFunding,
+    bool HasTourismActivity,
+    bool HasTourLinkage,
+    long? AnnualVisitors,
+    decimal? ExportValueVND,
+    int? IsEffective,
+    DateTime ImportedAt,
+    string? DataSource
+);
+
+public record MetricListDto(
+    long Id,
+    int CraftVillageId,
+    string? VillageName,
+    string? VillageCode,
+    string? CommuneName,
+    string? ProvinceName,
+    string ReportPeriod,
+    byte PeriodType,
+    decimal Revenue,
+    int TotalLabor,
+    int HouseholdCount,
+    int EnterpriseCount,
+    int? IsEffective,
+    DateTime ImportedAt
+);
+
+public record CreateMetricDto(
+    int CraftVillageId,
+    string ReportPeriod,
+    byte PeriodType,
+    bool BrandProtection,
+    bool HasOCOP3Star,
+    string? ProductionProcess,
+    decimal ExportRate,
+    int? ExportCategoryId,
+    decimal ImportMaterialRate,
+    int HouseholdCount,
+    int EnterpriseCount,
+    decimal? ProductionArea,
+    byte? ActiveMonths,
+    decimal? Output,
+    int? OutputUnitId,
+    decimal Revenue,
+    decimal? GrowthRate,
+    int TotalLabor,
+    decimal? TrainedLaborRate,
+    int ArtisanCount,
+    string? TrainingNeed,
+    decimal? AvgIncome,
+    decimal? DigitalLevel,
+    bool HasWebsite,
+    bool HasMuseum,
+    bool HasDocArchive,
+    bool HasWasteCollection,
+    bool HasWasteWaterSystem,
+    bool HasSolidWasteSystem,
+    bool HasEmissionTreatment,
+    bool HasDedicatedZone,
+    bool HasSupportPolicy,
+    decimal? SupportFunding,
+    bool HasTourismActivity,
+    bool HasTourLinkage,
+    long? AnnualVisitors,
+    string? DataSource
+);
+
+public record UpdateMetricDto(
+    int CraftVillageId,
+    string ReportPeriod,
+    byte PeriodType,
+    bool BrandProtection,
+    bool HasOCOP3Star,
+    string? ProductionProcess,
+    decimal ExportRate,
+    int? ExportCategoryId,
+    decimal ImportMaterialRate,
+    int HouseholdCount,
+    int EnterpriseCount,
+    decimal? ProductionArea,
+    byte? ActiveMonths,
+    decimal? Output,
+    int? OutputUnitId,
+    decimal Revenue,
+    decimal? GrowthRate,
+    int TotalLabor,
+    decimal? TrainedLaborRate,
+    int ArtisanCount,
+    string? TrainingNeed,
+    decimal? AvgIncome,
+    decimal? DigitalLevel,
+    bool HasWebsite,
+    bool HasMuseum,
+    bool HasDocArchive,
+    bool HasWasteCollection,
+    bool HasWasteWaterSystem,
+    bool HasSolidWasteSystem,
+    bool HasEmissionTreatment,
+    bool HasDedicatedZone,
+    bool HasSupportPolicy,
+    decimal? SupportFunding,
+    bool HasTourismActivity,
+    bool HasTourLinkage,
+    long? AnnualVisitors,
+    string? DataSource
+);
+
+public record MetricFilterDto : PageRequest
+{
+    public int? CraftVillageId { get; init; }
+    public int? ProvinceId { get; init; }
+    public int? CommuneId { get; init; }
+    public string? ReportPeriod { get; init; }
+    public byte? PeriodType { get; init; }
+    public int? IsEffective { get; init; }
+    public int? YearFrom { get; init; }
+    public int? YearTo { get; init; }
+}

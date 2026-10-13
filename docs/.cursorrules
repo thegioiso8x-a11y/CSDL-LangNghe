@@ -1,0 +1,86 @@
+# .cursorrules — CSDL LÀNG NGHỀ
+
+## Context dự án
+Đọc file `docs/MASTER_PROMPT.md` trước khi generate bất kỳ code nào.
+
+## Tech Stack cố định
+- Backend: .NET Core 8, EF Core 8, MediatR, FluentValidation, AutoMapper, Dapper
+- DB: SQL Server 2019+, Redis, Hangfire
+- Frontend: React 18, TypeScript, Vite, Ant Design 5, TanStack Query, Recharts
+- Test: xUnit + FluentAssertions + Moq
+
+## Quy tắc code BẮT BUỘC
+
+### Backend C#
+- CQRS: mỗi endpoint = 1 Command/Query riêng + Handler
+- Controller mỏng, logic trong Handler
+- DTO tách biệt: CreateXxxDto, UpdateXxxDto, XxxDetailDto, XxxListDto
+- FluentValidation cho mọi Command
+- AutoMapper Profile cho entity ↔ DTO
+- Async/await + CancellationToken mọi nơi
+- KHÔNG dùng `.Result`, `.Wait()`, `Task.Run()` trong controller
+- `AsNoTracking()` cho read-only, `AsTracking()` chỉ khi modify
+- Projection (`.Select()`) thay vì load full entity
+- Pagination cho mọi list API (mặc định 20, max 200)
+- Response format: `{ success, data, message, errors, timestamp }`
+
+### Database
+- Đọc `docs/schema.sql` — KHÔNG tự thêm/bớt cột
+- Denormalize ProvinceId/CommuneId trong Fact — dùng khi query dashboard
+- Query dashboard đọc từ Agg_* (không query Fact trực tiếp)
+- Columnstore index có sẵn trên Fact_Village_PeriodicMetrics
+- Full-text search trên Dim_CraftVillages.Name (LCID 1066)
+
+### Frontend React
+- Functional components + Hooks
+- TypeScript strict mode
+- Ant Design 5 (không dùng v4)
+- TanStack Query cho server state (không Redux)
+- Zustand cho local state phức tạp
+- Form: React Hook Form + Zod
+- Naming: PascalCase component, camelCase hooks (useXxx)
+- File structure: `components/`, `hooks/`, `services/`, `types/`
+
+### Naming
+- Entity: `CraftVillage` (singular)
+- DTO: `CreateVillageDto`
+- Command: `CreateVillageCommand` + `CreateVillageCommandHandler`
+- Service: `ExcelImportService`
+- Interface: `IExcelImportService`
+- Private field: `_camelCase`
+- Async suffix: luôn có `Async` + `CancellationToken`
+
+### Ngôn ngữ
+- Code + tên biến: Tiếng Anh
+- Comment + XML doc: Tiếng Việt có dấu
+- Message lỗi trả user: Tiếng Việt có dấu
+
+## Nghiệp vụ QUAN TRỌNG
+1. Ownership: User cấp Xã chỉ nhập/sửa LN thuộc xã mình — mã tỉnh trong VillageCode phải khớp
+2. Import mode MERGE: cột không có trong file → giữ nguyên giá trị cũ
+3. Import transaction: lỗi > 10% → rollback toàn bộ
+4. Excel flexible: 8 cột required, các cột khác optional
+5. Workflow: 0:Nháp → 1:Chờ Tỉnh → 2:Tỉnh duyệt → 3:TW công bố / 9:Trả lại
+6. Phân quyền tự động bằng EF Global Query Filter theo DataScope
+
+## Anti-patterns — KHÔNG dùng
+- ❌ `SELECT *` trên bảng wide
+- ❌ `WHERE YEAR(date) = 2026` (non-SARGable)
+- ❌ Correlated subquery (dùng JOIN + GROUP BY)
+- ❌ Load toàn bộ entity rồi `.Count()` — dùng `.CountAsync()`
+- ❌ Tracking entity cho read-only
+- ❌ Hardcode connection string, API key, secret
+- ❌ TODO / `...` trong code trả về
+
+## Khi nào HỎI LẠI (không tự đoán)
+- Yêu cầu mâu thuẫn schema → hỏi
+- Cần thêm bảng/cột → đề xuất + chờ OK
+- Cần package ngoài stack → đề xuất + chờ OK
+- Logic nghiệp vụ chưa rõ → hỏi
+
+## Trước khi trả code
+1. Kiểm tra compile — không để lỗi syntax
+2. Đầy đủ using/import
+3. Không dùng `// TODO: ...`
+4. Comment cho logic phức tạp
+5. Trả file hoàn chỉnh, không chia nhỏ kiểu "phần 1/3"

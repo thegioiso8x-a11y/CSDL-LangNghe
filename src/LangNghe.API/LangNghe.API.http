@@ -1,0 +1,6 @@
+@LangNghe.API_HostAddress = http://localhost:5224
+
+GET {{LangNghe.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
