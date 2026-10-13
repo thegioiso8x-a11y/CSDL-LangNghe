@@ -24,10 +24,8 @@ public class VillageTimeSeriesConfiguration : IEntityTypeConfiguration<VillageTi
 
         builder.Property(x => x.LastUpdated).HasDefaultValueSql("SYSUTCDATETIME()");
 
-        builder.HasOne(x => x.Region)
-            .WithMany(x => x.VillageTimeSeries)
-            .HasForeignKey(x => x.RegionId)
-            .OnDelete(DeleteBehavior.Restrict)
-            .HasConstraintName("FK_VillageTimeSeries_Region");
+        // RegionId = 0 đại diện cho bản ghi tổng hợp Toàn quốc, không có
+        // bản ghi tương ứng trong Dim_Regions nên không map FK navigation.
+        builder.Ignore(x => x.Region);
     }
 }

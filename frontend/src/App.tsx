@@ -19,6 +19,7 @@ import { PeriodicMetricList, PeriodicMetricForm } from './pages/periodic-metrics
 import { DraftList } from './pages/drafts'
 import { SubmissionList, SubmissionPending, SubmissionDetail } from './pages/submissions'
 import { ImportList, ImportPreview } from './pages/imports'
+import { AuditLogList } from './pages/audit-logs'
 
 export const App: React.FC = () => {
   return (
@@ -73,6 +74,7 @@ export const App: React.FC = () => {
           {/* Import Excel (Phase 10G) */}
           <Route path="imports" element={<ImportList />} />
           <Route path="imports/:batchId/preview" element={<ImportPreview />} />
+          <Route path="audit-logs" element={<AuditLogList />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

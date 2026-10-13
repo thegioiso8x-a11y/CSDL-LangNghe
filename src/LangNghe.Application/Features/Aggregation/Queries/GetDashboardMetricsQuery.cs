@@ -98,9 +98,10 @@ public class GetDashboardMetricsQueryHandler : IRequestHandler<GetDashboardMetri
         {
             if (request.RegionId == 0)
             {
-                request.RegionId = _currentUser.RegionId ?? 0;
+                throw new ForbiddenException("Bạn không có quyền xem dữ liệu toàn quốc.");
             }
-            else if (request.RegionId != _currentUser.RegionId)
+
+            if (request.RegionId != _currentUser.RegionId)
             {
                 throw new ForbiddenException("Bạn không có quyền xem dữ liệu của vùng này.");
             }

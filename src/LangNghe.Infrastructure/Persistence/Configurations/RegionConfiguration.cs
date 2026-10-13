@@ -60,6 +60,10 @@ public class RegionConfiguration : IEntityTypeConfiguration<Region>
             .HasForeignKey(x => x.ParentId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Agg_Village_TimeSeries có RegionId = 0 cho Toàn quốc, không có
+        // bản ghi tương ứng trong Dim_Regions nên không tạo quan hệ FK.
+        builder.Ignore(x => x.VillageTimeSeries);
+
         // Indexes
         builder.HasIndex(x => x.RegionCode)
             .IsUnique()

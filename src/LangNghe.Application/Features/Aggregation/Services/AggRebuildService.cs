@@ -134,6 +134,98 @@ public class AggRebuildService : IAggRebuildService
         {
             _cacheService.Invalidate(period, periodType, rId);
         }
+
+        // Roll-up từ cấp Tỉnh để tạo một bản ghi tổng hợp Toàn quốc (RegionId = 0).
+        var provinceAggregates = await _context.VillageTimeSeries
+            .AsNoTracking()
+            .Where(x => x.Period == period && x.PeriodType == periodType && x.RegionLevel == 1)
+            .ToListAsync(ct);
+
+        if (provinceAggregates.Count > 0)
+        {
+            var totalVillages = provinceAggregates.Sum(x => x.TotalVillages);
+            var totalLabor = provinceAggregates.Sum(x => x.TotalLabor);
+            var totalRevenue = provinceAggregates.Sum(x => x.TotalRevenue);
+            var totalExportValue = provinceAggregates.Sum(x => x.TotalExportValue);
+            var incomeAggregates = provinceAggregates.Where(x => x.AvgIncome.HasValue).ToList();
+            var growthAggregates = provinceAggregates.Where(x => x.AvgGrowthRate.HasValue).ToList();
+            var incomeLabor = incomeAggregates.Sum(x => x.TotalLabor);
+            var growthVillages = growthAggregates.Sum(x => x.TotalVillages);
+
+            var nationalAggregate = new VillageTimeSeries
+            {
+                RegionId = 0,
+                RegionLevel = 0,
+                ParentRegionId = null,
+                Period = period,
+                PeriodType = periodType,
+                TotalVillages = totalVillages,
+                TraditionalVillages = provinceAggregates.Sum(x => x.TraditionalVillages),
+                NewVillages = provinceAggregates.Sum(x => x.NewVillages),
+                RestoredVillages = provinceAggregates.Sum(x => x.RestoredVillages),
+                OcopVillages = provinceAggregates.Sum(x => x.OcopVillages),
+                EffectiveVillages = provinceAggregates.Sum(x => x.EffectiveVillages),
+                TotalHouseholds = provinceAggregates.Sum(x => x.TotalHouseholds),
+                TotalEnterprises = provinceAggregates.Sum(x => x.TotalEnterprises),
+                TotalLabor = totalLabor,
+                TrainedLabor = provinceAggregates.Sum(x => x.TrainedLabor),
+                TotalArtisans = provinceAggregates.Sum(x => x.TotalArtisans),
+                TotalArea = provinceAggregates.Any(x => x.TotalArea.HasValue)
+                    ? provinceAggregates.Sum(x => x.TotalArea ?? 0m)
+                    : null,
+                TotalRevenue = totalRevenue,
+                TotalExportValue = totalExportValue,
+                AvgRevenuePerVillage = totalVillages > 0 ? totalRevenue / totalVillages : 0,
+                AvgIncome = incomeLabor > 0
+                    ? incomeAggregates.Sum(x => x.AvgIncome!.Value * x.TotalLabor) / incomeLabor
+                    : null,
+                AvgGrowthRate = growthVillages > 0
+                    ? growthAggregates.Sum(x => x.AvgGrowthRate!.Value * x.TotalVillages) / growthVillages
+                    : null,
+                DigitalizedVillages = provinceAggregates.Sum(x => x.DigitalizedVillages),
+                EnvCompliantVillages = provinceAggregates.Sum(x => x.EnvCompliantVillages),
+                TourismVillages = provinceAggregates.Sum(x => x.TourismVillages),
+                TotalVisitors = provinceAggregates.Sum(x => x.TotalVisitors),
+                LastUpdated = DateTime.UtcNow,
+                CalculatedBy = "Manual-Rollup"
+            };
+
+            if (existingAggs.TryGetValue(0, out var existingNational))
+            {
+                existingNational.RegionLevel = nationalAggregate.RegionLevel;
+                existingNational.ParentRegionId = nationalAggregate.ParentRegionId;
+                existingNational.TotalVillages = nationalAggregate.TotalVillages;
+                existingNational.TraditionalVillages = nationalAggregate.TraditionalVillages;
+                existingNational.NewVillages = nationalAggregate.NewVillages;
+                existingNational.RestoredVillages = nationalAggregate.RestoredVillages;
+                existingNational.OcopVillages = nationalAggregate.OcopVillages;
+                existingNational.EffectiveVillages = nationalAggregate.EffectiveVillages;
+                existingNational.TotalHouseholds = nationalAggregate.TotalHouseholds;
+                existingNational.TotalEnterprises = nationalAggregate.TotalEnterprises;
+                existingNational.TotalLabor = nationalAggregate.TotalLabor;
+                existingNational.TrainedLabor = nationalAggregate.TrainedLabor;
+                existingNational.TotalArtisans = nationalAggregate.TotalArtisans;
+                existingNational.TotalArea = nationalAggregate.TotalArea;
+                existingNational.TotalRevenue = nationalAggregate.TotalRevenue;
+                existingNational.TotalExportValue = nationalAggregate.TotalExportValue;
+                existingNational.AvgRevenuePerVillage = nationalAggregate.AvgRevenuePerVillage;
+                existingNational.AvgIncome = nationalAggregate.AvgIncome;
+                existingNational.AvgGrowthRate = nationalAggregate.AvgGrowthRate;
+                existingNational.DigitalizedVillages = nationalAggregate.DigitalizedVillages;
+                existingNational.EnvCompliantVillages = nationalAggregate.EnvCompliantVillages;
+                existingNational.TourismVillages = nationalAggregate.TourismVillages;
+                existingNational.TotalVisitors = nationalAggregate.TotalVisitors;
+                existingNational.LastUpdated = nationalAggregate.LastUpdated;
+                existingNational.CalculatedBy = nationalAggregate.CalculatedBy;
+            }
+            else
+            {
+                _context.VillageTimeSeries.Add(nationalAggregate);
+            }
+
+            await _context.SaveChangesAsync(ct);
+            _cacheService.Invalidate(period, periodType, 0);
+        }
     }
 
     public async Task RebuildIndustryGroupsAsync(string period, byte periodType, CancellationToken ct)

@@ -394,6 +394,88 @@ export interface ImportFilterDto {
   pageSize?: number
 }
 
+// ========================
+// 6. DASHBOARD & AGGREGATION
+// ========================
+export interface VillageTimeSeriesDto {
+  regionId: number
+  regionLevel: number
+  period: string
+  periodType: number
+  totalVillages: number
+  traditionalVillages: number
+  newVillages: number
+  restoredVillages: number
+  ocopVillages: number
+  effectiveVillages: number
+  totalHouseholds: number
+  totalEnterprises: number
+  totalLabor: number
+  trainedLabor: number
+  totalArtisans: number
+  totalArea: number | null
+  totalRevenue: number
+  totalExportValue: number
+  avgRevenuePerVillage: number | null
+  avgIncome: number | null
+  avgGrowthRate: number | null
+  digitalizedVillages: number
+  envCompliantVillages: number
+  tourismVillages: number
+  totalVisitors: number
+}
+
+export interface IndustryGroupMetricDto {
+  industryGroupId: number
+  industryGroupName: string
+  totalVillages: number
+  totalRevenue: number
+  totalLabor: number
+  totalExportValue: number
+}
+
+export interface VillageTypeMetricDto {
+  villageTypeId: number
+  villageTypeName: string
+  totalVillages: number
+  totalRevenue: number
+  totalLabor: number
+}
+
+export interface DashboardMetricsDto {
+  overall: VillageTimeSeriesDto | null
+  byIndustryGroup: IndustryGroupMetricDto[]
+  byVillageType: VillageTypeMetricDto[]
+}
+
+// ========================
+// 7. AUDIT LOG
+// ========================
+export interface AuditLogDto {
+  id: number
+  userId: number | null
+  username: string | null
+  action: string
+  entityName: string
+  entityId: string | null
+  oldValues: string | null
+  newValues: string | null
+  ipAddress: string | null
+  userAgent: string | null
+  createdAt: string
+}
+
+export interface AuditLogFilterDto {
+  userId?: number
+  action?: string
+  entityName?: string
+  fromDate?: string
+  toDate?: string
+  keyword?: string
+  page?: number
+  pageSize?: number
+}
+
 export interface CopyPreviousMetricRequest {
   craftVillageId: number
   targetReportPeriod: string
