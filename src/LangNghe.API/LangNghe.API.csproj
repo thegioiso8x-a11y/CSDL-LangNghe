@@ -18,6 +18,7 @@
     <ProjectReference Include="..\LangNghe.Domain\LangNghe.Domain.csproj" />
     <ProjectReference Include="..\LangNghe.Application\LangNghe.Application.csproj" />
     <ProjectReference Include="..\LangNghe.Infrastructure\LangNghe.Infrastructure.csproj" />
+    <ProjectReference Include="..\LangNghe.Jobs\LangNghe.Jobs.csproj" />
   </ItemGroup>
 
 </Project>

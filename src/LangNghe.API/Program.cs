@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Hangfire;
 using LangNghe.API.Extensions;
 using LangNghe.API.Middleware;
 using LangNghe.API.Services;
@@ -6,6 +7,8 @@ using LangNghe.Application;
 using LangNghe.Domain.Constants;
 using LangNghe.Domain.Interfaces;
 using LangNghe.Infrastructure;
+using LangNghe.Jobs;
+using LangNghe.API.Authorization;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,6 +39,9 @@ builder.Services.AddCustomSwaggerGen();
 // Add Application and Infrastructure
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+var hangfireConnection = builder.Configuration.GetConnectionString("DefaultConnection")!;
+builder.Services.AddHangfireJobs(hangfireConnection);
 
 // Add HttpContextAccessor and CurrentUserService
 builder.Services.AddHttpContextAccessor();
@@ -106,6 +112,17 @@ app.UseCors("AllowAllDev");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireDashboardAuthFilter(app.Environment) },
+    DashboardTitle = "LangNghe Background Jobs"
+});
+
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.ScheduleHangfireJobs();
+}
 
 app.Run();
