@@ -175,3 +175,34 @@ API integration:
 - `Program.cs` — đăng ký Hangfire + schedule jobs khi app start
 - Dashboard `/hangfire` — filter `HangfireDashboardAuthFilter`: Dev cho phép tất cả, Production yêu cầu DataScope=1 (TW)
 - Connection dùng `DefaultConnection`
+
+### ✅ Notification in-app (NOT-1/2/4)
+
+**Schema:**
+- Bảng `Sys_Notifications` (Id BIGINT, UserId, Title, Message, Type, EntityType, EntityId, LinkUrl, IsRead, ReadAt, CreatedAt)
+- Index `IX_Notification_User_Read` (UserId, IsRead, CreatedAt DESC)
+- File migration: `docs/migrations/20261014_add_notifications.sql`
+- Apply qua endpoint tạm `POST /api/v1/dev/migration/notifications` (chỉ TW)
+
+**Backend `Features/Notifications/`:**
+- Entity: `Notification`
+- Interface: `INotificationService` (CreateAsync, CreateBulkAsync, CountUnreadAsync)
+- Service: `NotificationService` — Add vào context, KHÔNG tự SaveChanges
+- Constants: `NotificationTypes` (WorkflowSubmit/Approve/Reject/Publish/System)
+- Queries: GetMyNotificationsQuery, GetUnreadCountQuery
+- Commands: MarkAsReadCommand, MarkAllAsReadCommand
+- Controller: `/api/v1/notifications` — GET list, GET unread-count, POST read, POST read-all
+- Chỉ `[Authorize]` (mọi user xem được thông báo của mình)
+
+**Workflow triggers (4 handler):**
+- SubmitWorkflowCommand → notify user Tỉnh cùng tỉnh với làng nghề
+- ApproveWorkflowCommand → notify người tạo workflow + toàn bộ user TW
+- RejectWorkflowCommand → notify người tạo workflow (kèm lý do)
+- PublishWorkflowCommand → notify người tạo workflow
+- Notification lưu bằng SaveChangesAsync lần 2 (sau nghiệp vụ chính)
+
+**Frontend:**
+- `NotificationBell.tsx` — Bell icon + Badge count, polling 30s, dropdown 5 notification mới nhất
+- `pages/notifications/List.tsx` — trang danh sách đầy đủ + filter + pagination
+- Route `/notifications`
+- Tích hợp Bell vào MainLayout (trước dropdown user)
