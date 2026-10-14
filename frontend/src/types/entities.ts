@@ -195,6 +195,72 @@ export interface ArtisanFilterDto {
 }
 
 // ========================
+// 4. USER (NGƯỜI DÙNG)
+// ========================
+export interface UserDto {
+  id: number
+  username: string
+  fullName: string | null
+  email: string | null
+  phone: string | null
+  regionId: number | null
+  regionName: string | null
+  dataScope: number
+  dataScopeName: string | null
+  isActive: boolean
+  lastLoginAt: string | null
+  roles: string[]
+  createdAt: string
+}
+
+export interface CreateUserDto {
+  username: string
+  password: string
+  fullName: string | null
+  email: string | null
+  phone: string | null
+  regionId: number | null
+  dataScope: number
+  mustChangePassword: boolean
+  roleIds: number[]
+}
+
+export interface UpdateUserDto {
+  fullName: string | null
+  email: string | null
+  phone: string | null
+  regionId: number | null
+  dataScope: number
+  isActive: boolean
+  roleIds: number[]
+}
+
+export interface UserFilterDto {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  regionId?: number
+  dataScope?: number
+  isActive?: boolean
+  roleCode?: string
+}
+
+export interface RoleDto {
+  id: number
+  code: string
+  name: string
+  description: string | null
+}
+
+export interface PermissionDto {
+  id: number
+  code: string
+  module: string
+  action: string
+  name: string | null
+}
+
+// ========================
 // 4. PERIODIC METRIC (CHỈ TIÊU ĐỊNH KỲ)
 // ========================
 export interface MetricDto {
@@ -392,6 +458,42 @@ export interface ImportFilterDto {
   toDate?: string
   page?: number
   pageSize?: number
+}
+
+// ========================
+// 6. USER IMPORT (IMPORT NGƯỜI DÙNG)
+// ========================
+export interface UserImportRowDto {
+  rowNumber: number
+  username: string
+  fullName: string | null
+  dataScope: string
+  regionCode: string | null
+  roleCodes: string[]
+  isValid: boolean
+  errors: string[]
+}
+
+export interface UserImportPreviewDto {
+  totalRows: number
+  validRows: number
+  errorRows: number
+  rows: UserImportRowDto[]
+}
+
+export interface UserImportErrorDto {
+  rowNumber: number
+  username: string
+  message: string
+}
+
+export interface UserImportResultDto {
+  totalRows: number
+  importedRows: number
+  updatedRows: number
+  skippedRows: number
+  errorRows: number
+  errors: UserImportErrorDto[]
 }
 
 // ========================

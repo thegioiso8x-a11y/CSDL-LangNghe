@@ -12,3 +12,7 @@ body {
     'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
     'Noto Color Emoji';
 }
+
+.user-import-error-row > td {
+  background-color: #fff1f0 !important;
+}

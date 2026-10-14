@@ -20,6 +20,7 @@ import { DraftList } from './pages/drafts'
 import { SubmissionList, SubmissionPending, SubmissionDetail } from './pages/submissions'
 import { ImportList, ImportPreview } from './pages/imports'
 import { AuditLogList } from './pages/audit-logs'
+import { UserList } from './pages/users'
 
 export const App: React.FC = () => {
   return (
@@ -75,6 +76,7 @@ export const App: React.FC = () => {
           <Route path="imports" element={<ImportList />} />
           <Route path="imports/:batchId/preview" element={<ImportPreview />} />
           <Route path="audit-logs" element={<AuditLogList />} />
+          <Route path="users" element={<UserList />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -8,3 +8,5 @@ appsettings.*.local.json
 appsettings.local.json
 .dotnet_home/
 *.log
+.dotnet-cli-home/
+.tmp/

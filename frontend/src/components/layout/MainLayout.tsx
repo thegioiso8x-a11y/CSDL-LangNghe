@@ -31,7 +31,7 @@ export const MainLayout: React.FC = () => {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { user, logout } = useAuth()
+  const { user, logout, hasPermission } = useAuth()
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken()
@@ -78,6 +78,7 @@ export const MainLayout: React.FC = () => {
     },
     { key: '/imports', icon: <UploadOutlined />, label: 'Import' },
     { key: '/audit-logs', icon: <HistoryOutlined />, label: 'Nhật ký' },
+    ...(hasPermission('USER.MANAGE') ? [{ key: '/users', icon: <UserOutlined />, label: 'Người dùng' }] : []),
   ]
 
   // Menu Dropdown tài khoản góc trên bên phải
@@ -108,6 +109,7 @@ export const MainLayout: React.FC = () => {
     if (pathname.startsWith('/drafts')) return '/drafts'
     if (pathname === '/submissions/pending') return '/submissions/pending'
     if (pathname.startsWith('/submissions')) return '/submissions'
+    if (pathname.startsWith('/users')) return '/users'
     return pathname
   }
 

@@ -109,3 +109,31 @@ Route `/api/v1/periodic-metrics` (**chú ý Id là `long`**):
 - Workflow: Submit riêng qua `POST /api/v1/submissions/submit` (đã có metric kỳ đó)
 - Approve (Tỉnh), Reject (Tỉnh), Publish (TW)
 - Status: 0 Draft → 1 PendingProvince → 2 ApprovedProvince → 3 Published / 9 Rejected
+### ✅ Frontend (Đợt 10 hoàn tất)
+
+Stack: React 18 + TypeScript strict + Vite + AntD 5 + TanStack Query v5 + RHF/Zod + Zustand + Recharts + dayjs
+
+Cấu trúc `frontend/src/`:
+- `api/` — axios instance + 11 API modules (auth, villages, products, artisans, periodicMetrics, workflow, imports, dashboard, auditLogs + shared)
+- `components/layout/` — MainLayout (Sider + Header + Dropdown user), ProtectedRoute
+- `components/common/` — DataTable, DeleteConfirm, PermissionGate
+- `contexts/AuthContext.tsx` — user + token + hasPermission/hasRole/isDataScope
+- `hooks/` — useCRUD, useApiError
+- `utils/` — storage (localStorage token), format (date/number/currency)
+- `pages/` — 15 module pages
+
+Module đã xong:
+- 10A: Setup + Vite proxy + Auth (Login/Logout/Refresh token) + MainLayout
+- 10B: Profile + đổi mật khẩu + PermissionGate + useApiError
+- 10C: 6 Danh mục CRUD (village-types, industry-groups, output-units, export-categories, classifications, regions)
+- 10D: Village (dependent dropdown tỉnh/xã, RowVersion) + Product (OCOP validate) + Artisan (Phone/SĐT regex, năm hợp lệ)
+- 10E: PeriodicMetric form 7 tab + Copy kỳ trước + Detail modal
+- 10F: Draft (auto-save 30s, JSON editor) + Workflow (List/Pending/Detail với action theo DataScope + Status)
+- 10G: Import Excel (Upload Dragger, 4 mode, Preview batch, Rollback) — CHỈ frontend, backend đã có
+- 10H: Dashboard (9 KPI card + 4 Recharts + FilterBar + RebuildButton + Export Excel) — đã hỗ trợ "Toàn quốc" RegionId=0
+- 10I: Audit Log (List + filter + Detail diff JSON + Cleanup)
+
+Backend bổ sung trong Đợt 10:
+- Fix permission policy: 9 policy mới (VillageRead, VillageApprove, ImportUpload, ImportRollback, ReportView, ReportExport, UserManage, AuditView, ConfigManage) + gắn vào 23 endpoints của 5 Controller
+- Fix Aggregation Toàn quốc: bỏ FK `FK_VillageTimeSeries_Region` + CHECK constraint mở `RegionLevel IN (0,1,2)` + roll-up trong `AggRebuildService.RebuildTimeSeriesAsync` với weighted average cho AvgIncome/AvgGrowthRate
+- `VillageTimeSeriesConfiguration` + `RegionConfiguration` bỏ navigation giữa Agg ↔ Region

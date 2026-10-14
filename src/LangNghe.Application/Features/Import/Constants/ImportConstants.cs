@@ -19,6 +19,7 @@ public static class ImportMode
     public const string REPLACE_FULL = "REPLACE_FULL";
     public const string INSERT_ONLY = "INSERT_ONLY";
     public const string UPDATE_ONLY = "UPDATE_ONLY";
+    public const string UPSERT = "UPSERT";
 }
 
 /// <summary>

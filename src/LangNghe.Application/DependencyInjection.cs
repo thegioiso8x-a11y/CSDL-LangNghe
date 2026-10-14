@@ -5,6 +5,8 @@ using LangNghe.Application.Features.Import.Interfaces;
 using LangNghe.Application.Features.Import.Services;
 using LangNghe.Application.Features.Aggregation.Interfaces;
 using LangNghe.Application.Features.Aggregation.Services;
+using LangNghe.Application.Features.User.Interfaces;
+using LangNghe.Application.Features.User.Services;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -36,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<IAggRebuildService, AggRebuildService>();
         services.AddScoped<IDashboardCacheService, DashboardCacheService>();
         services.AddScoped<IExportService, ExportService>();
+        services.AddScoped<IUserImportService, UserImportService>();
 
         return services;
     }
