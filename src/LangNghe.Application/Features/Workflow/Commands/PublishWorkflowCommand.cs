@@ -1,6 +1,8 @@
 using LangNghe.Application.Common;
 using System.Threading;
 using System.Threading.Tasks;
+using LangNghe.Domain.Constants;
+using LangNghe.Application.Features.Notifications.Interfaces;
 using LangNghe.Domain.Exceptions;
 using LangNghe.Domain.Interfaces;
 using MediatR;
@@ -14,11 +16,16 @@ public class PublishWorkflowCommandHandler : IRequestHandler<PublishWorkflowComm
 {
     private readonly ILangNgheDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly INotificationService _notificationService;
 
-    public PublishWorkflowCommandHandler(ILangNgheDbContext context, ICurrentUserService currentUser)
+    public PublishWorkflowCommandHandler(
+        ILangNgheDbContext context,
+        ICurrentUserService currentUser,
+        INotificationService notificationService)
     {
         _context = context;
         _currentUser = currentUser;
+        _notificationService = notificationService;
     }
 
     public async Task<ApiResponse<bool>> Handle(PublishWorkflowCommand request, CancellationToken cancellationToken)
@@ -47,6 +54,19 @@ public class PublishWorkflowCommandHandler : IRequestHandler<PublishWorkflowComm
             workflow.CraftVillage.PublishedAt = System.DateTime.UtcNow;
             workflow.CraftVillage.Status = 1;
         }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var villageName = workflow.CraftVillage?.Name ?? "làng nghề";
+        await _notificationService.CreateAsync(
+            workflow.CreatedByXa,
+            "Báo cáo đã được công bố",
+            $"Báo cáo làng nghề {villageName} kỳ {workflow.ReportPeriod} đã được Bộ công bố chính thức",
+            NotificationTypes.WorkflowPublish,
+            "SubmissionWorkflow",
+            workflow.Id.ToString(),
+            $"/submissions/{workflow.Id}",
+            cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 

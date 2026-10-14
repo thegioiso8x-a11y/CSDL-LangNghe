@@ -39,6 +39,7 @@ public interface ILangNgheDbContext
     DbSet<ImportErrorLog> ImportErrorLogs { get; }
     DbSet<ImportTemplateConfig> ImportTemplateConfigs { get; }
     DbSet<RefreshToken> RefreshTokens { get; }
+    DbSet<Notification> Notifications { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

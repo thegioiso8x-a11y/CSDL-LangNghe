@@ -51,6 +51,7 @@ public class LangNgheDbContext : DbContext, ILangNgheDbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<FormFieldConfig> FormFieldConfigs => Set<FormFieldConfig>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     // Import
     public DbSet<ImportHistory> ImportHistories => Set<ImportHistory>();

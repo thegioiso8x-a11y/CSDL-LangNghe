@@ -260,6 +260,26 @@ export interface PermissionDto {
   name: string | null
 }
 
+export interface NotificationDto {
+  id: number
+  title: string
+  message?: string | null
+  type: string
+  entityType?: string | null
+  entityId?: string | null
+  linkUrl?: string | null
+  isRead: boolean
+  readAt?: string | null
+  createdAt: string
+}
+
+export interface NotificationFilterDto {
+  isRead?: boolean
+  type?: string
+  page?: number
+  pageSize?: number
+}
+
 // ========================
 // 4. PERIODIC METRIC (CHỈ TIÊU ĐỊNH KỲ)
 // ========================

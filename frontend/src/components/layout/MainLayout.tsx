@@ -18,6 +18,7 @@ import {
 } from '@ant-design/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { NotificationBell } from './NotificationBell'
 
 const { Header, Sider, Content } = Layout
 const { Text } = Typography
@@ -157,6 +158,7 @@ export const MainLayout: React.FC = () => {
             borderBottom: '1px solid #f0f0f0',
           }}
         >
+          <NotificationBell />
           <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
             <Button type="text" style={{ height: 'auto', padding: '6px 12px' }}>
               <Space>

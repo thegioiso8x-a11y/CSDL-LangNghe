@@ -7,6 +7,8 @@ using LangNghe.Application.Features.Aggregation.Interfaces;
 using LangNghe.Application.Features.Aggregation.Services;
 using LangNghe.Application.Features.User.Interfaces;
 using LangNghe.Application.Features.User.Services;
+using LangNghe.Application.Features.Notifications.Interfaces;
+using LangNghe.Application.Features.Notifications.Services;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -39,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IDashboardCacheService, DashboardCacheService>();
         services.AddScoped<IExportService, ExportService>();
         services.AddScoped<IUserImportService, UserImportService>();
+        services.AddScoped<INotificationService, NotificationService>();
 
         return services;
     }

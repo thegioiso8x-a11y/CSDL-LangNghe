@@ -21,6 +21,7 @@ import { SubmissionList, SubmissionPending, SubmissionDetail } from './pages/sub
 import { ImportList, ImportPreview } from './pages/imports'
 import { AuditLogList } from './pages/audit-logs'
 import { UserList } from './pages/users'
+import { NotificationList } from './pages/notifications'
 
 export const App: React.FC = () => {
   return (
@@ -77,6 +78,7 @@ export const App: React.FC = () => {
           <Route path="imports/:batchId/preview" element={<ImportPreview />} />
           <Route path="audit-logs" element={<AuditLogList />} />
           <Route path="users" element={<UserList />} />
+          <Route path="notifications" element={<NotificationList />} />
         </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>

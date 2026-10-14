@@ -1,6 +1,8 @@
 using LangNghe.Application.Common;
 using System.Threading;
 using System.Threading.Tasks;
+using LangNghe.Domain.Constants;
+using LangNghe.Application.Features.Notifications.Interfaces;
 using LangNghe.Application.Features.Workflow.Dtos;
 using LangNghe.Domain.Exceptions;
 using LangNghe.Domain.Interfaces;
@@ -15,11 +17,16 @@ public class RejectWorkflowCommandHandler : IRequestHandler<RejectWorkflowComman
 {
     private readonly ILangNgheDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly INotificationService _notificationService;
 
-    public RejectWorkflowCommandHandler(ILangNgheDbContext context, ICurrentUserService currentUser)
+    public RejectWorkflowCommandHandler(
+        ILangNgheDbContext context,
+        ICurrentUserService currentUser,
+        INotificationService notificationService)
     {
         _context = context;
         _currentUser = currentUser;
+        _notificationService = notificationService;
     }
 
     public async Task<ApiResponse<bool>> Handle(RejectWorkflowCommand request, CancellationToken cancellationToken)
@@ -49,6 +56,19 @@ public class RejectWorkflowCommandHandler : IRequestHandler<RejectWorkflowComman
         workflow.RejectedBy = _currentUser.UserId;
         workflow.RejectedAt = System.DateTime.UtcNow;
         workflow.RejectionReason = request.Dto.Reason;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var villageName = workflow.CraftVillage?.Name ?? "làng nghề";
+        await _notificationService.CreateAsync(
+            workflow.CreatedByXa,
+            "Báo cáo bị từ chối",
+            $"Báo cáo làng nghề {villageName} kỳ {workflow.ReportPeriod} bị từ chối. Lý do: {workflow.RejectionReason}",
+            NotificationTypes.WorkflowReject,
+            "SubmissionWorkflow",
+            workflow.Id.ToString(),
+            $"/submissions/{workflow.Id}",
+            cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
 
