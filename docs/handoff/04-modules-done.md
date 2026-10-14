@@ -137,3 +137,41 @@ Backend bổ sung trong Đợt 10:
 - Fix permission policy: 9 policy mới (VillageRead, VillageApprove, ImportUpload, ImportRollback, ReportView, ReportExport, UserManage, AuditView, ConfigManage) + gắn vào 23 endpoints của 5 Controller
 - Fix Aggregation Toàn quốc: bỏ FK `FK_VillageTimeSeries_Region` + CHECK constraint mở `RegionLevel IN (0,1,2)` + roll-up trong `AggRebuildService.RebuildTimeSeriesAsync` với weighted average cho AvgIncome/AvgGrowthRate
 - `VillageTimeSeriesConfiguration` + `RegionConfiguration` bỏ navigation giữa Agg ↔ Region
+
+### ✅ User Management (UM-1/2/3)
+
+Backend `Features/User/`:
+- Queries: GetUserListQuery, GetUserByIdQuery, GetRolesQuery, GetPermissionsQuery
+- Commands: CreateUserCommand, UpdateUserCommand, DeleteUserCommand (soft), ResetPasswordCommand, AssignRolesCommand
+- Services: UserImportService (INSERT_ONLY / UPDATE_ONLY / UPSERT, preview + import + template)
+- Validators: username regex, password, phone VN, DataScope
+- Controller: `/api/v1/users` — list/get/roles/permissions/create/update/delete/reset-password/assign-roles/import/preview/import/template
+- Policy: UserManage
+
+Frontend `/users`:
+- List + filter (keyword, dataScope, region, isActive, roleCode)
+- Form tạo/sửa (dependent RegionId khi DataScope != 1)
+- ResetPasswordModal
+- Import Modal (upload → preview → import + tải template)
+- Menu "Người dùng" chỉ hiện nếu user có USER.MANAGE
+
+Đặc điểm:
+- Import Excel 8 cột: Username, Password, FullName, Email, Phone, DataScope, RegionCode, RoleCodes
+- Preview trước khi import, rollback > 10% lỗi
+- Sync UserRoles khi update
+- Soft delete (IsActive=false) — không xóa record
+- Reset password tự revoke toàn bộ refresh token
+
+### ✅ Hangfire Automation
+
+Project mới `src/LangNghe.Jobs/`:
+- 3 recurring jobs:
+  * `rebuild-agg-daily` — 2h sáng UTC, gọi `IAggRebuildService.RebuildAllAsync`
+  * `cleanup-token-daily` — 3h sáng, xóa refresh token hết hạn > 7 ngày hoặc đã revoke
+  * `cleanup-audit-daily` — 4h sáng, xóa audit log cũ > 2 năm
+- DependencyInjection extension: `AddHangfireJobs(connStr)` + `ScheduleHangfireJobs()`
+
+API integration:
+- `Program.cs` — đăng ký Hangfire + schedule jobs khi app start
+- Dashboard `/hangfire` — filter `HangfireDashboardAuthFilter`: Dev cho phép tất cả, Production yêu cầu DataScope=1 (TW)
+- Connection dùng `DefaultConnection`
