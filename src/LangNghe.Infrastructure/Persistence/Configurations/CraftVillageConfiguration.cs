@@ -28,6 +28,9 @@ public class CraftVillageConfiguration : IEntityTypeConfiguration<CraftVillage>
             .IsRequired(false)
             .HasMaxLength(500);
 
+        builder.Property(x => x.ImageUrl)
+            .HasMaxLength(500);
+
         builder.Property(x => x.RecognitionDecision)
             .IsRequired(false)
             .HasMaxLength(500);

@@ -40,6 +40,7 @@ public class GetArtisanByIdQueryHandler : IRequestHandler<GetArtisanByIdQuery, A
             artisan.RecognitionYear,
             artisan.Specialty,
             artisan.Phone,
+            artisan.ImageUrl,
             artisan.IsActive,
             artisan.UpdatedAt
         );

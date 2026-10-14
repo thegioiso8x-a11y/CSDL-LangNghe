@@ -35,12 +35,14 @@ import type {
   UpdateVillageDto,
 } from '../../types/entities'
 import { getApiErrorMessage } from '../../hooks/useApiError'
+import ImageUpload from '../../components/common/ImageUpload'
 
 const { Title } = Typography
 
 interface FormValues {
   villageCode: string
   name: string
+  imageUrl?: string | null
   provinceId: number
   regionId: number
   address?: string
@@ -116,6 +118,7 @@ export const VillageForm: React.FC = () => {
       form.setFieldsValue({
         villageCode: v.villageCode,
         name: v.name,
+        imageUrl: v.imageUrl ?? null,
         provinceId: foundProvinceId,
         regionId: v.regionId,
         address: v.address ?? undefined,
@@ -178,6 +181,7 @@ export const VillageForm: React.FC = () => {
       const updateDto: UpdateVillageDto = {
         villageCode: values.villageCode.trim(),
         name: values.name.trim(),
+        imageUrl: values.imageUrl || null,
         regionId: values.regionId,
         address: values.address?.trim() || null,
         recognitionDecision: values.recognitionDecision?.trim() || null,
@@ -194,6 +198,7 @@ export const VillageForm: React.FC = () => {
       const createDto: CreateVillageDto = {
         villageCode: values.villageCode.trim(),
         name: values.name.trim(),
+        imageUrl: values.imageUrl || null,
         regionId: values.regionId,
         address: values.address?.trim() || null,
         recognitionDecision: values.recognitionDecision?.trim() || null,
@@ -283,6 +288,10 @@ export const VillageForm: React.FC = () => {
               ]}
             >
               <Input placeholder="Ví dụ: Làng gốm Bát Tràng" />
+            </Form.Item>
+
+            <Form.Item name="imageUrl" label="Ảnh làng nghề">
+              <ImageUpload category="villages" />
             </Form.Item>
 
             <Row gutter={16}>

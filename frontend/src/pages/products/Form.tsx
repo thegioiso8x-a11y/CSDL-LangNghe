@@ -28,6 +28,7 @@ import type {
   UpdateProductDto,
 } from '../../types/entities'
 import { getApiErrorMessage } from '../../hooks/useApiError'
+import ImageUpload from '../../components/common/ImageUpload'
 
 const { Title } = Typography
 const { TextArea } = Input
@@ -314,8 +315,8 @@ export const ProductForm: React.FC = () => {
               </Card>
             )}
 
-            <Form.Item name="imageUrl" label="URL hình ảnh sản phẩm">
-              <Input placeholder="https://example.com/anh-san-pham.jpg" maxLength={500} />
+            <Form.Item name="imageUrl" label="Ảnh sản phẩm">
+              <ImageUpload category="products" />
             </Form.Item>
 
             <Form.Item name="sortOrder" label="Thứ tự hiển thị">

@@ -12,6 +12,7 @@ using LangNghe.API.Authorization;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseWebRoot("wwwroot");
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
@@ -94,6 +95,9 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Serve static files từ wwwroot (ảnh upload)
+app.UseStaticFiles();
 
 // Configure the HTTP request pipeline.
 app.UseSerilogRequestLogging();

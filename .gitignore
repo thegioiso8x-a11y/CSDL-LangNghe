@@ -10,3 +10,4 @@ appsettings.local.json
 *.log
 .dotnet-cli-home/
 .tmp/
+src/LangNghe.API/wwwroot/uploads/

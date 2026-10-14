@@ -152,6 +152,23 @@ export const VillageList: React.FC = () => {
       ),
     },
     {
+      title: 'Ảnh',
+      dataIndex: 'imageUrl',
+      key: 'imageUrl',
+      width: 80,
+      align: 'center',
+      render: (imageUrl: string | null | undefined) =>
+        imageUrl ? (
+          <img
+            src={imageUrl}
+            alt="Ảnh làng nghề"
+            style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }}
+          />
+        ) : (
+          '-'
+        ),
+    },
+    {
       title: 'Tỉnh / TP',
       dataIndex: 'provinceName',
       key: 'provinceName',

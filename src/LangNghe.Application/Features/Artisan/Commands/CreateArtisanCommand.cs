@@ -35,6 +35,7 @@ public class CreateArtisanCommandHandler : IRequestHandler<CreateArtisanCommand,
             RecognitionYear = request.Dto.RecognitionYear,
             Specialty = request.Dto.Specialty,
             Phone = request.Dto.Phone,
+            ImageUrl = request.Dto.ImageUrl,
             IsActive = true
         };
 

@@ -29,6 +29,7 @@ public class GetVillageByIdQueryHandler : IRequestHandler<GetVillageByIdQuery, V
                 v.Region != null && v.Region.Parent != null ? v.Region.Parent.Name : null,
                 v.Region != null ? v.Region.Name : null,
                 v.Address,
+                v.ImageUrl,
                 v.RecognitionDecision,
                 v.RecognitionDate,
                 v.ClassificationId,

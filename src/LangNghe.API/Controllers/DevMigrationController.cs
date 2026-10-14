@@ -61,4 +61,24 @@ END
         await _context.Database.ExecuteSqlRawAsync(sql, ct);
         return Ok(ApiResponse<bool>.Ok(true, "Đã apply migration Notifications"));
     }
+
+    /// <summary>
+    /// Thêm cột ImageUrl cho Dim_CraftVillages và Dim_Artisans nếu chưa tồn tại.
+    /// </summary>
+    [HttpPost("image-urls")]
+    public async Task<ActionResult<ApiResponse<bool>>> ApplyImageUrlMigration(CancellationToken ct)
+    {
+        if (_currentUser.DataScope != 1)
+            throw new ForbiddenException("Chỉ cấp Trung ương mới có quyền chạy migration.");
+
+        var sql = @"
+IF COL_LENGTH('dbo.Dim_CraftVillages', 'ImageUrl') IS NULL
+    ALTER TABLE Dim_CraftVillages ADD ImageUrl NVARCHAR(500) NULL;
+
+IF COL_LENGTH('dbo.Dim_Artisans', 'ImageUrl') IS NULL
+    ALTER TABLE Dim_Artisans ADD ImageUrl NVARCHAR(500) NULL;
+";
+        await _context.Database.ExecuteSqlRawAsync(sql, ct);
+        return Ok(ApiResponse<bool>.Ok(true, "Đã apply migration ImageUrl"));
+    }
 }

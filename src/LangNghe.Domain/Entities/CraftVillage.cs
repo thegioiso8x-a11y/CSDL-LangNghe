@@ -14,6 +14,7 @@ public class CraftVillage : BaseEntity
     public required string Name { get; set; }
     public int RegionId { get; set; }
     public string? Address { get; set; }
+    public string? ImageUrl { get; set; }
     public string? RecognitionDecision { get; set; }
     public DateTime? RecognitionDate { get; set; }
     public int? ClassificationId { get; set; }

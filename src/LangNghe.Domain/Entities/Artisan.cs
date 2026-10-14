@@ -17,6 +17,7 @@ public class Artisan : BaseEntity
     public int? RecognitionYear { get; set; }
     public string? Specialty { get; set; }
     public string? Phone { get; set; }
+    public string? ImageUrl { get; set; }
     public bool IsActive { get; set; }
     public DateTime? UpdatedAt { get; set; }
 

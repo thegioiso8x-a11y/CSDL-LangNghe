@@ -8,6 +8,7 @@ export interface VillageListDto {
   id: number
   villageCode: string
   name: string
+  imageUrl?: string | null
   provinceName: string | null
   communeName: string | null
   villageTypeName: string | null
@@ -26,6 +27,7 @@ export interface VillageDetailDto {
   provinceName: string | null
   communeName: string | null
   address: string | null
+  imageUrl?: string | null
   recognitionDecision: string | null
   recognitionDate: string | null
   classificationId: number | null
@@ -48,6 +50,7 @@ export interface CreateVillageDto {
   name: string
   regionId: number
   address?: string | null
+  imageUrl?: string | null
   recognitionDecision?: string | null
   recognitionDate?: string | null
   classificationId?: number | null
@@ -61,6 +64,7 @@ export interface UpdateVillageDto {
   name: string
   regionId: number
   address?: string | null
+  imageUrl?: string | null
   recognitionDecision?: string | null
   recognitionDate?: string | null
   classificationId?: number | null
@@ -158,6 +162,7 @@ export interface ArtisanDto {
   recognitionYear: number | null
   specialty: string | null
   phone: string | null
+  imageUrl?: string | null
   isActive: boolean
   updatedAt: string | null
 }
@@ -171,6 +176,7 @@ export interface CreateArtisanDto {
   recognitionYear?: number | null
   specialty?: string | null
   phone?: string | null
+  imageUrl?: string | null
 }
 
 export interface UpdateArtisanDto {
@@ -182,6 +188,7 @@ export interface UpdateArtisanDto {
   recognitionYear?: number | null
   specialty?: string | null
   phone?: string | null
+  imageUrl?: string | null
   isActive: boolean
 }
 

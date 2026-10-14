@@ -66,6 +66,7 @@ public class GetArtisanListQueryHandler : IRequestHandler<GetArtisanListQuery, P
                 x.RecognitionYear,
                 x.Specialty,
                 x.Phone,
+                x.ImageUrl,
                 x.IsActive,
                 x.UpdatedAt
             ))

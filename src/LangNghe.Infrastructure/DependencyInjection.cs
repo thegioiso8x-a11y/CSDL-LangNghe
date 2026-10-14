@@ -1,4 +1,5 @@
 using LangNghe.Application.Features.Auth.Interfaces;
+using LangNghe.Application.Features.Uploads.Interfaces;
 using LangNghe.Application.Interfaces;
 using LangNghe.Domain.Interfaces;
 using LangNghe.Infrastructure.Persistence;
@@ -39,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<ICaptchaService, CaptchaService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IVillageOwnershipService, VillageOwnershipService>();
+        services.AddScoped<IFileStorageService, FileStorageService>();
 
         return services;
     }

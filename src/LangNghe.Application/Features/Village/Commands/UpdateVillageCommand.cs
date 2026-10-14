@@ -61,6 +61,7 @@ public class UpdateVillageCommandHandler : IRequestHandler<UpdateVillageCommand,
         entity.Name = dto.Name;
         entity.RegionId = dto.RegionId;
         entity.Address = dto.Address;
+        entity.ImageUrl = dto.ImageUrl;
         entity.RecognitionDecision = dto.RecognitionDecision;
         entity.RecognitionDate = dto.RecognitionDate;
         entity.ClassificationId = dto.ClassificationId;

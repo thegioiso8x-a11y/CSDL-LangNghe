@@ -42,6 +42,9 @@ public class ArtisanConfiguration : IEntityTypeConfiguration<Artisan>
             .HasMaxLength(20)
             .IsUnicode(false);
 
+        builder.Property(x => x.ImageUrl)
+            .HasMaxLength(500);
+
         builder.Property(x => x.IsActive)
             .IsRequired();
 

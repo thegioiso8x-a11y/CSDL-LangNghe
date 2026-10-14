@@ -41,6 +41,7 @@ public class UpdateArtisanCommandHandler : IRequestHandler<UpdateArtisanCommand,
         entity.RecognitionYear = request.Dto.RecognitionYear;
         entity.Specialty = request.Dto.Specialty;
         entity.Phone = request.Dto.Phone;
+        entity.ImageUrl = request.Dto.ImageUrl;
         entity.IsActive = request.Dto.IsActive;
         entity.UpdatedAt = DateTime.UtcNow;
 

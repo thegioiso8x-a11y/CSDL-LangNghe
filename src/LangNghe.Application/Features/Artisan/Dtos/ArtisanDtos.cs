@@ -14,6 +14,7 @@ public record ArtisanDto(
     int? RecognitionYear,
     string? Specialty,
     string? Phone,
+    string? ImageUrl,
     bool IsActive,
     DateTime? UpdatedAt
 );
@@ -26,7 +27,8 @@ public record CreateArtisanDto(
     string? ArtisanLevel,
     int? RecognitionYear,
     string? Specialty,
-    string? Phone
+    string? Phone,
+    string? ImageUrl
 );
 
 public record UpdateArtisanDto(
@@ -38,6 +40,7 @@ public record UpdateArtisanDto(
     int? RecognitionYear,
     string? Specialty,
     string? Phone,
+    string? ImageUrl,
     bool IsActive
 );
 

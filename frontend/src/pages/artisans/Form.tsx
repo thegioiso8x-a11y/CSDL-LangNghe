@@ -28,6 +28,7 @@ import type {
   UpdateArtisanDto,
 } from '../../types/entities'
 import { getApiErrorMessage } from '../../hooks/useApiError'
+import ImageUpload from '../../components/common/ImageUpload'
 
 const { Title } = Typography
 
@@ -40,6 +41,7 @@ interface FormValues {
   recognitionYear?: number
   specialty?: string
   phone?: string
+  imageUrl?: string | null
   isActive?: boolean
 }
 
@@ -79,6 +81,7 @@ export const ArtisanForm: React.FC = () => {
         recognitionYear: a.recognitionYear ?? undefined,
         specialty: a.specialty ?? undefined,
         phone: a.phone ?? undefined,
+        imageUrl: a.imageUrl ?? null,
         isActive: a.isActive ?? true,
       })
     }
@@ -120,6 +123,7 @@ export const ArtisanForm: React.FC = () => {
         recognitionYear: values.recognitionYear ?? null,
         specialty: values.specialty?.trim() || null,
         phone: values.phone?.trim() || null,
+        imageUrl: values.imageUrl || null,
         isActive: values.isActive ?? true,
       }
       await updateMutation.mutateAsync({ id: artisanId, data: updateDto })
@@ -133,6 +137,7 @@ export const ArtisanForm: React.FC = () => {
         recognitionYear: values.recognitionYear ?? null,
         specialty: values.specialty?.trim() || null,
         phone: values.phone?.trim() || null,
+        imageUrl: values.imageUrl || null,
       }
       await createMutation.mutateAsync(createDto)
     }
@@ -307,6 +312,10 @@ export const ArtisanForm: React.FC = () => {
 
             <Form.Item name="specialty" label="Chuyên ngành / Tay nghề nổi bật">
               <Input placeholder="Ví dụ: Chạm khắc gỗ mỹ nghệ, Tạo hình gốm vuốt tay..." maxLength={255} />
+            </Form.Item>
+
+            <Form.Item name="imageUrl" label="Ảnh nghệ nhân">
+              <ImageUpload category="artisans" />
             </Form.Item>
 
             {isEdit && (
