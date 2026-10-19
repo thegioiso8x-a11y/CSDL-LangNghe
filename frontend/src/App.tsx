@@ -34,6 +34,7 @@ const ImportPreview = lazy(() => import('./pages/imports/Preview').then((module)
 const AuditLogList = lazy(() => import('./pages/audit-logs/List').then((module) => ({ default: module.AuditLogList })))
 const UserList = lazy(() => import('./pages/users/List'))
 const NotificationList = lazy(() => import('./pages/notifications/List'))
+const MapPage = lazy(() => import('./pages/map/MapPage'))
 
 const LazyPage = ({ children }: { children: ReactNode }) => (
   <Suspense fallback={<PageLoading />}>{children}</Suspense>
@@ -54,6 +55,7 @@ export const App: React.FC = () => {
           }
         >
           <Route path="dashboard" element={<LazyPage><Dashboard /></LazyPage>} />
+          <Route path="map" element={<LazyPage><MapPage /></LazyPage>} />
           <Route path="profile" element={<LazyPage><Profile /></LazyPage>} />
 
           {/* 6 Danh mục CRUD (Phase 10C) */}

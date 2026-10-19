@@ -73,6 +73,8 @@ public class GetVillageListQueryHandler : IRequestHandler<GetVillageListQuery, P
                 v.VillageCode,
                 v.Name,
                 v.ImageUrl,
+                v.Latitude,
+                v.Longitude,
                 v.Region != null && v.Region.Parent != null ? v.Region.Parent.Name : null,
                 v.Region != null ? v.Region.Name : null,
                 v.VillageType != null ? v.VillageType.Name : null,

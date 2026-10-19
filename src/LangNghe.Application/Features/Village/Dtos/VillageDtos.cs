@@ -7,6 +7,8 @@ public record VillageListDto(
     string VillageCode,
     string Name,
     string? ImageUrl,
+    decimal? Latitude,
+    decimal? Longitude,
     string? ProvinceName,
     string? CommuneName,
     string? VillageTypeName,
@@ -26,6 +28,10 @@ public record VillageDetailDto(
     string? CommuneName,
     string? Address,
     string? ImageUrl,
+    decimal? Latitude,
+    decimal? Longitude,
+    DateTime? GeocodedAt,
+    string? GeocodeSource,
     string? RecognitionDecision,
     DateTime? RecognitionDate,
     int? ClassificationId,
@@ -43,12 +49,28 @@ public record VillageDetailDto(
     DateTime? UpdatedAt
 );
 
+public record VillageGeoDto(
+    int Id,
+    string VillageCode,
+    string Name,
+    string? ImageUrl,
+    decimal Latitude,
+    decimal Longitude,
+    string? ProvinceName,
+    string? CommuneName,
+    string? VillageTypeName,
+    string? ClassificationName,
+    bool IsPublished
+);
+
 public record CreateVillageDto(
     string VillageCode,
     string Name,
     int RegionId,
     string? Address,
     string? ImageUrl,
+    decimal? Latitude,
+    decimal? Longitude,
     string? RecognitionDecision,
     DateTime? RecognitionDate,
     int? ClassificationId,
@@ -63,6 +85,8 @@ public record UpdateVillageDto(
     int RegionId,
     string? Address,
     string? ImageUrl,
+    decimal? Latitude,
+    decimal? Longitude,
     string? RecognitionDecision,
     DateTime? RecognitionDate,
     int? ClassificationId,

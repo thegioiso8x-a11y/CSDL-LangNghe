@@ -42,6 +42,14 @@ public class VillagesController : ControllerBase
         return Ok(ApiResponse<VillageDetailDto>.Ok(result));
     }
 
+    [HttpGet("geo")]
+    [Authorize(Policy = "VillageRead")]
+    public async Task<IActionResult> GetGeoList(CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetVillageGeoListQuery(), ct);
+        return Ok(result);
+    }
+
     [HttpPost]
     [Authorize(Policy = "VillageCreate")]
     public async Task<IActionResult> Create([FromBody] CreateVillageDto dto, CancellationToken ct)
@@ -73,5 +81,16 @@ public class VillagesController : ControllerBase
         var result = await _mediator.Send(new PublishVillageCommand(id, publish), ct);
         var message = publish ? "Công bố làng nghề thành công" : "Hủy công bố làng nghề thành công";
         return Ok(ApiResponse<bool>.Ok(result, message));
+    }
+
+    /// <summary>
+    /// Geocode làng nghề từ địa chỉ (dùng Nominatim).
+    /// </summary>
+    [HttpPost("{id:int}/geocode")]
+    [Authorize(Policy = "VillageUpdate")]
+    public async Task<IActionResult> Geocode(int id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GeocodeVillageCommand(id), ct);
+        return Ok(result);
     }
 }

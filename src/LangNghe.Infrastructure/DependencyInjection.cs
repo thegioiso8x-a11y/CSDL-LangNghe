@@ -1,4 +1,5 @@
 using LangNghe.Application.Features.Auth.Interfaces;
+using LangNghe.Application.Features.Geocoding.Interfaces;
 using LangNghe.Application.Features.Uploads.Interfaces;
 using LangNghe.Application.Interfaces;
 using LangNghe.Domain.Interfaces;
@@ -41,6 +42,12 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IVillageOwnershipService, VillageOwnershipService>();
         services.AddScoped<IFileStorageService, FileStorageService>();
+        services.AddHttpClient<IGeocodingService, NominatimGeocodingService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(15);
+            client.DefaultRequestHeaders.Add("User-Agent", "LangNgheCMS/1.0 (contact: admin@langnghe.gov.vn)");
+            client.DefaultRequestHeaders.Add("Accept-Language", "vi,en");
+        });
 
         return services;
     }

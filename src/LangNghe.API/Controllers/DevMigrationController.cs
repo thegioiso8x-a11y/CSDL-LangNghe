@@ -81,4 +81,27 @@ IF COL_LENGTH('dbo.Dim_Artisans', 'ImageUrl') IS NULL
         await _context.Database.ExecuteSqlRawAsync(sql, ct);
         return Ok(ApiResponse<bool>.Ok(true, "Đã apply migration ImageUrl"));
     }
+
+    /// <summary>
+    /// Thêm cột tọa độ cho Dim_CraftVillages.
+    /// </summary>
+    [HttpPost("village-coordinates")]
+    public async Task<ActionResult<ApiResponse<bool>>> ApplyCoordinatesMigration(CancellationToken ct)
+    {
+        if (_currentUser.DataScope != 1)
+            throw new ForbiddenException("Chỉ cấp Trung ương mới có quyền chạy migration.");
+
+        var sql = @"
+IF COL_LENGTH('dbo.Dim_CraftVillages', 'Latitude') IS NULL
+    ALTER TABLE Dim_CraftVillages ADD Latitude DECIMAL(10,7) NULL;
+IF COL_LENGTH('dbo.Dim_CraftVillages', 'Longitude') IS NULL
+    ALTER TABLE Dim_CraftVillages ADD Longitude DECIMAL(10,7) NULL;
+IF COL_LENGTH('dbo.Dim_CraftVillages', 'GeocodedAt') IS NULL
+    ALTER TABLE Dim_CraftVillages ADD GeocodedAt DATETIME NULL;
+IF COL_LENGTH('dbo.Dim_CraftVillages', 'GeocodeSource') IS NULL
+    ALTER TABLE Dim_CraftVillages ADD GeocodeSource VARCHAR(50) NULL;
+";
+        await _context.Database.ExecuteSqlRawAsync(sql, ct);
+        return Ok(ApiResponse<bool>.Ok(true, "Đã apply migration Village coordinates"));
+    }
 }

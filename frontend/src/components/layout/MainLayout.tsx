@@ -15,9 +15,11 @@ import {
   KeyOutlined,
   DownOutlined,
   AppstoreOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { PermissionGate } from '../common/PermissionGate'
 import { NotificationBell } from './NotificationBell'
 
 const { Header, Sider, Content } = Layout
@@ -50,6 +52,17 @@ export const MainLayout: React.FC = () => {
   // Danh sách menu chính
   const menuItems: MenuProps['items'] = [
     { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+    ...(hasPermission('VILLAGE.READ')
+      ? [{
+          key: '/map',
+          icon: <GlobalOutlined />,
+          label: (
+            <PermissionGate permission="VILLAGE.READ">
+              Bản đồ số
+            </PermissionGate>
+          ),
+        }]
+      : []),
     {
       key: 'categories',
       icon: <AppstoreOutlined />,

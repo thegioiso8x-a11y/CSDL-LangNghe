@@ -31,6 +31,16 @@ public class CraftVillageConfiguration : IEntityTypeConfiguration<CraftVillage>
         builder.Property(x => x.ImageUrl)
             .HasMaxLength(500);
 
+        builder.Property(x => x.Latitude)
+            .HasColumnType("decimal(10,7)");
+
+        builder.Property(x => x.Longitude)
+            .HasColumnType("decimal(10,7)");
+
+        builder.Property(x => x.GeocodeSource)
+            .HasMaxLength(50)
+            .IsUnicode(false);
+
         builder.Property(x => x.RecognitionDecision)
             .IsRequired(false)
             .HasMaxLength(500);
@@ -111,6 +121,9 @@ public class CraftVillageConfiguration : IEntityTypeConfiguration<CraftVillage>
         builder.HasIndex(x => x.VillageCode)
             .IsUnique()
             .HasDatabaseName("UQ_Dim_CraftVillages_Code");
+
+        builder.HasIndex(x => new { x.Latitude, x.Longitude })
+            .HasDatabaseName("IX_Village_Geo");
 
         // Checks
         builder.ToTable(t => 

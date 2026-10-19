@@ -15,6 +15,17 @@ public class CraftVillage : BaseEntity
     public int RegionId { get; set; }
     public string? Address { get; set; }
     public string? ImageUrl { get; set; }
+    /// <summary>Tọa độ vĩ độ (WGS84). Null nếu chưa xác định.</summary>
+    public decimal? Latitude { get; set; }
+
+    /// <summary>Tọa độ kinh độ (WGS84). Null nếu chưa xác định.</summary>
+    public decimal? Longitude { get; set; }
+
+    /// <summary>Thời điểm tọa độ được xác định (nhập tay hoặc geocode).</summary>
+    public DateTime? GeocodedAt { get; set; }
+
+    /// <summary>Nguồn tọa độ: Manual / Nominatim / Import.</summary>
+    public string? GeocodeSource { get; set; }
     public string? RecognitionDecision { get; set; }
     public DateTime? RecognitionDate { get; set; }
     public int? ClassificationId { get; set; }

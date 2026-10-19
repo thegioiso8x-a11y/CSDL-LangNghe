@@ -6,6 +6,7 @@ import type {
   CreateVillageDto,
   UpdateVillageDto,
   VillageFilterDto,
+  VillageGeoDto,
 } from '../types/entities'
 
 export const getVillages = async (
@@ -22,6 +23,24 @@ export const getVillageById = async (id: number): Promise<ApiResponse<VillageDet
 
 export const getVillageByCode = async (code: string): Promise<ApiResponse<VillageDetailDto>> => {
   const res = await apiClient.get<ApiResponse<VillageDetailDto>>(`/villages/by-code/${code}`)
+  return res.data
+}
+
+export const getVillageGeoList = async (): Promise<ApiResponse<VillageGeoDto[]>> => {
+  const res = await apiClient.get<ApiResponse<VillageGeoDto[]>>('/villages/geo')
+  return res.data
+}
+
+export interface VillageGeoFilter {
+  provinceId?: number
+  villageTypeId?: number
+  keyword?: string
+}
+
+export const getVillagesGeo = async (
+  params?: VillageGeoFilter
+): Promise<ApiResponse<VillageGeoDto[]>> => {
+  const res = await apiClient.get<ApiResponse<VillageGeoDto[]>>('/villages/geo', { params })
   return res.data
 }
 

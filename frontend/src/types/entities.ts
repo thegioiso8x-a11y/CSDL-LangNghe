@@ -45,6 +45,20 @@ export interface VillageDetailDto {
   updatedAt: string | null
 }
 
+export interface VillageGeoDto {
+  id: number
+  villageCode: string
+  name: string
+  imageUrl?: string | null
+  latitude: number
+  longitude: number
+  provinceName?: string | null
+  communeName?: string | null
+  villageTypeName?: string | null
+  classificationName?: string | null
+  isPublished: boolean
+}
+
 export interface CreateVillageDto {
   villageCode: string
   name: string
