@@ -1,13 +1,60 @@
+# ═══════════════ .NET ═══════════════
 bin/
 obj/
-logs/
-.user
+*.user
+*.suo
 .vs/
-.vscode/
-appsettings.*.local.json
-appsettings.local.json
 .dotnet_home/
-*.log
 .dotnet-cli-home/
 .tmp/
+
+# Build artifacts
+[Dd]ebug/
+[Rr]elease/
+*.dll
+*.exe
+*.pdb
+*.cache
+
+# ═══════════════ CONFIG / SECRETS ═══════════════
+# KHÔNG commit secret thật — dùng User Secrets hoặc env var
+appsettings.Local.json
+appsettings.*.local.json
+*.local.json
+.env
+.env.local
+.env.*.local
+secrets.json
+
+# ═══════════════ LOGS ═══════════════
+logs/
+src/LangNghe.API/logs/
+*.log
+
+# ═══════════════ FRONTEND ═══════════════
+node_modules/
+frontend/dist/
+frontend/build/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ═══════════════ UPLOADS ═══════════════
 src/LangNghe.API/wwwroot/uploads/
+
+# ═══════════════ IDE ═══════════════
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# ═══════════════ OS ═══════════════
+.DS_Store
+Thumbs.db
+
+# ═══════════════ DATABASE ═══════════════
+*.db
+*.db-shm
+*.db-wal
