@@ -1,153 +1,218 @@
-import { useMemo, useState } from 'react'
-import { Button, Card, Empty, Input, Select, Space, Spin, Typography } from 'antd'
-import { EnvironmentOutlined, SearchOutlined } from '@ant-design/icons'
-import Map, { Marker, NavigationControl, Popup } from 'react-map-gl/maplibre'
-import 'maplibre-gl/dist/maplibre-gl.css'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
-import { getVillageGeoList } from '../../api/villages'
+import { SearchOutlined } from '@ant-design/icons'
+import { Button, Card, Empty, Input, Select, Space, Typography } from 'antd'
+import { getRegionTree, getVillageTypes } from '../../api/categories'
+import { getVillagesGeo } from '../../api/villages'
+import PageLoading from '../../components/common/PageLoading'
 import type { VillageGeoDto } from '../../types/entities'
 
-const { Text, Title } = Typography
+const { Title, Text } = Typography
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
+const maplibregl = (window as any).maplibregl
 
-/**
- * Trang bản đồ số hiển thị các làng nghề đã có tọa độ.
- */
-export default function MapPage() {
-  const navigate = useNavigate()
-  const [keyword, setKeyword] = useState('')
-  const [province, setProvince] = useState<string>()
-  const [villageType, setVillageType] = useState<string>()
-  const [selected, setSelected] = useState<VillageGeoDto | null>(null)
+interface GeoFilters {
+  provinceId?: number
+  villageTypeId?: number
+  keyword?: string
+}
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['villages', 'geo'],
-    queryFn: getVillageGeoList,
+const createPopupContent = (village: VillageGeoDto) => {
+  const content = document.createElement('div')
+  content.style.minWidth = '240px'
+
+  if (village.imageUrl) {
+    const image = document.createElement('img')
+    image.alt = village.name
+    image.src = village.imageUrl
+    image.style.cssText = 'height: 140px; margin-bottom: 8px; object-fit: cover; width: 100%;'
+    content.appendChild(image)
+  }
+
+  const name = document.createElement('div')
+  name.textContent = village.name
+  name.style.cssText = 'font-size: 16px; font-weight: 600; margin-bottom: 6px;'
+  content.appendChild(name)
+
+  const details = [
+    `Mã làng: ${village.villageCode}`,
+    `Loại hình: ${village.villageTypeName ?? '-'}`,
+    `Địa chỉ: ${[village.communeName, village.provinceName]
+      .filter((location): location is string => Boolean(location))
+      .join(', ') || '-'}`,
+  ]
+
+  details.forEach((detail) => {
+    const row = document.createElement('div')
+    row.textContent = detail
+    content.appendChild(row)
   })
 
-  const villages = data?.data ?? []
+  return content
+}
 
-  const filtered = useMemo(() => {
-    const normalizedKeyword = keyword.trim().toLowerCase()
-    return villages.filter((village) => {
-      if (province && village.provinceName !== province) return false
-      if (villageType && village.villageTypeName !== villageType) return false
-      if (normalizedKeyword && !village.name.toLowerCase().includes(normalizedKeyword)) return false
-      return true
+/**
+ * Hiển thị các làng nghề đã có tọa độ trên bản đồ số Việt Nam.
+ */
+export default function MapPage() {
+  const [formFilters, setFormFilters] = useState<GeoFilters>({})
+  const [filters, setFilters] = useState<GeoFilters>({})
+  const mapContainer = useRef<HTMLDivElement>(null)
+  const map = useRef<any>(null)
+  const markers = useRef<any[]>([])
+  const popup = useRef<any>(null)
+
+  const { data: geoData, isLoading: isLoadingVillages } = useQuery({
+    queryKey: ['villages', 'geo', filters],
+    queryFn: () => getVillagesGeo(filters),
+  })
+
+  const { data: regionsData, isLoading: isLoadingRegions } = useQuery({
+    queryKey: ['regions', 'tree'],
+    queryFn: getRegionTree,
+  })
+
+  const { data: villageTypesData, isLoading: isLoadingVillageTypes } = useQuery({
+    queryKey: ['village-types', { pageSize: 100, isActive: true }],
+    queryFn: () => getVillageTypes({ pageSize: 100, isActive: true }),
+  })
+
+  const villages = geoData?.data ?? []
+  const provinceOptions = (regionsData?.data ?? []).map((province) => ({
+    value: province.id,
+    label: province.name,
+  }))
+  const villageTypeOptions = (villageTypesData?.data?.items ?? []).map((villageType) => ({
+    value: villageType.id,
+    label: villageType.name,
+  }))
+  const isLoading = isLoadingVillages || isLoadingRegions || isLoadingVillageTypes
+
+  const handleSearch = () => {
+    popup.current?.remove()
+    setFilters({
+      provinceId: formFilters.provinceId,
+      villageTypeId: formFilters.villageTypeId,
+      keyword: formFilters.keyword?.trim() || undefined,
     })
-  }, [villages, province, villageType, keyword])
+  }
 
-  const provinceOptions = useMemo(
-    () => Array.from(new Set(villages.map((village) => village.provinceName).filter(Boolean)))
-      .map((value) => ({ value, label: value })),
-    [villages],
-  )
+  const updateFilter = <Key extends keyof GeoFilters>(key: Key, value: GeoFilters[Key]) => {
+    setFormFilters((current) => ({ ...current, [key]: value }))
+  }
 
-  const villageTypeOptions = useMemo(
-    () => Array.from(new Set(villages.map((village) => village.villageTypeName).filter(Boolean)))
-      .map((value) => ({ value, label: value })),
-    [villages],
-  )
+  useEffect(() => {
+    if (!mapContainer.current || !maplibregl || map.current) return
+
+    map.current = new maplibregl.Map({
+      container: mapContainer.current,
+      style: MAP_STYLE,
+      center: [106.299, 16.0],
+      zoom: 4.5,
+    })
+    map.current.addControl(new maplibregl.NavigationControl(), 'top-right')
+
+    // Ép MapLibre tính lại kích thước sau khi khung trang đã render hoàn chỉnh.
+    setTimeout(() => {
+      map.current?.resize()
+    }, 200)
+
+    return () => {
+      popup.current?.remove()
+      map.current?.remove()
+      map.current = null
+      markers.current = []
+      popup.current = null
+    }
+  }, [isLoading])
+
+  useEffect(() => {
+    if (!map.current || !maplibregl) return
+
+    markers.current.forEach((marker) => marker.remove())
+    markers.current = villages.map((village) => {
+      const marker = new maplibregl.Marker({ color: '#cf1322', anchor: 'bottom' })
+        .setLngLat([village.longitude, village.latitude])
+        .addTo(map.current)
+
+      marker.getElement().setAttribute('aria-label', `Xem thông tin ${village.name}`)
+      marker.getElement().style.cursor = 'pointer'
+      marker.getElement().addEventListener('click', (event: MouseEvent) => {
+        event.stopPropagation()
+        popup.current?.remove()
+        popup.current = new maplibregl.Popup({ anchor: 'bottom', closeOnClick: false, maxWidth: '320px' })
+          .setLngLat([village.longitude, village.latitude])
+          .setDOMContent(createPopupContent(village))
+          .addTo(map.current)
+      })
+
+      return marker
+    })
+
+    return () => {
+      markers.current.forEach((marker) => marker.remove())
+      markers.current = []
+    }
+  }, [villages])
+
+  if (isLoading) {
+    return <PageLoading />
+  }
 
   return (
     <div>
       <Card style={{ marginBottom: 16 }}>
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <Title level={4} style={{ margin: 0 }}>Bản đồ số làng nghề</Title>
+          <Title level={4} style={{ margin: 0 }}>
+            Bản đồ số làng nghề
+          </Title>
           <Space wrap>
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="Chọn tỉnh / thành phố"
+              options={provinceOptions}
+              value={formFilters.provinceId}
+              onChange={(value: number | undefined) => updateFilter('provinceId', value)}
+              style={{ width: 240 }}
+            />
+            <Select
+              allowClear
+              showSearch
+              optionFilterProp="label"
+              placeholder="Chọn loại hình làng nghề"
+              options={villageTypeOptions}
+              value={formFilters.villageTypeId}
+              onChange={(value: number | undefined) => updateFilter('villageTypeId', value)}
+              style={{ width: 240 }}
+            />
             <Input
               allowClear
               prefix={<SearchOutlined />}
-              placeholder="Tìm tên làng nghề"
-              value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
-              style={{ width: 260 }}
+              placeholder="Tìm theo tên hoặc mã làng nghề"
+              value={formFilters.keyword}
+              onChange={(event) => updateFilter('keyword', event.target.value)}
+              onPressEnter={handleSearch}
+              style={{ width: 280 }}
             />
-            <Select
-              allowClear
-              placeholder="Tỉnh / Thành phố"
-              options={provinceOptions}
-              value={province}
-              onChange={setProvince}
-              style={{ width: 220 }}
-            />
-            <Select
-              allowClear
-              placeholder="Loại hình làng nghề"
-              options={villageTypeOptions}
-              value={villageType}
-              onChange={setVillageType}
-              style={{ width: 220 }}
-            />
-            <Text type="secondary">
-              Tìm thấy {filtered.length} / {villages.length} làng nghề
-            </Text>
+            <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
+              Tìm kiếm
+            </Button>
+            <Text type="secondary">Tìm thấy {villages.length} làng nghề</Text>
           </Space>
         </Space>
       </Card>
 
-      {isLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 420 }}>
-          <Spin size="large" tip="Đang tải dữ liệu bản đồ..." />
-        </div>
-      ) : villages.length === 0 ? (
+      {villages.length === 0 ? (
         <Card>
-          <Empty description="Chưa có làng nghề nào được geocode. Vào Làng nghề → chọn 1 làng → bấm 'Tìm tọa độ'." />
+          <Empty description="Không tìm thấy làng nghề đã có tọa độ phù hợp." />
         </Card>
       ) : (
-        <div style={{ width: '100%', height: 'calc(100vh - 200px)', minHeight: 420 }}>
-          <Map
-            initialViewState={{ longitude: 106.0, latitude: 16.0, zoom: 5.5 }}
-            style={{ width: '100%', height: '100%' }}
-            mapStyle={MAP_STYLE}
-          >
-            <NavigationControl position="top-right" />
-
-            {filtered.map((village) => (
-              <Marker
-                key={village.id}
-                longitude={village.longitude}
-                latitude={village.latitude}
-                anchor="bottom"
-                onClick={() => setSelected(village)}
-              >
-                <EnvironmentOutlined style={{ color: '#d4380d', fontSize: 32, cursor: 'pointer' }} />
-              </Marker>
-            ))}
-
-            {selected && (
-              <Popup
-                longitude={selected.longitude}
-                latitude={selected.latitude}
-                anchor="bottom"
-                closeOnClick={false}
-                onClose={() => setSelected(null)}
-              >
-                <div style={{ width: 260 }}>
-                  {selected.imageUrl && (
-                    <img
-                      src={selected.imageUrl}
-                      alt={selected.name}
-                      style={{ width: '100%', height: 120, objectFit: 'cover', marginBottom: 8 }}
-                    />
-                  )}
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>{selected.name}</div>
-                  <div>Mã LN: {selected.villageCode}</div>
-                  <div>Loại hình: {selected.villageTypeName || '-'}</div>
-                  <div>Địa chỉ: {[selected.communeName, selected.provinceName].filter(Boolean).join(', ') || '-'}</div>
-                  <Button
-                    type="link"
-                    style={{ padding: '8px 0 0' }}
-                    onClick={() => navigate(`/villages/${selected.id}/edit`)}
-                  >
-                    Xem chi tiết
-                  </Button>
-                </div>
-              </Popup>
-            )}
-          </Map>
-        </div>
+        <div
+          ref={mapContainer}
+          style={{ height: 'calc(100vh - 230px)', minHeight: 480, width: '100%' }}
+        />
       )}
     </div>
   )

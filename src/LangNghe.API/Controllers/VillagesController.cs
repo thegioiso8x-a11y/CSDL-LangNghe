@@ -1,4 +1,5 @@
 using LangNghe.Application.Common;
+using LangNghe.Application.Features.Geocoding.Queries;
 using LangNghe.Application.Features.Village.Commands;
 using LangNghe.Application.Features.Village.Dtos;
 using LangNghe.Application.Features.Village.Queries;
@@ -50,6 +51,19 @@ public class VillagesController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Geocode địa chỉ khi tạo mới làng nghề, trước khi có ID.
+    /// </summary>
+    [HttpPost("geocode-address")]
+    [Authorize(Policy = "VillageRead")]
+    public async Task<IActionResult> GeocodeAddress(
+        [FromBody] GeocodeAddressRequest request,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GeocodeAddressQuery(request.Address), ct);
+        return Ok(result);
+    }
+
     [HttpPost]
     [Authorize(Policy = "VillageCreate")]
     public async Task<IActionResult> Create([FromBody] CreateVillageDto dto, CancellationToken ct)
@@ -94,3 +108,5 @@ public class VillagesController : ControllerBase
         return Ok(result);
     }
 }
+
+public record GeocodeAddressRequest(string Address);

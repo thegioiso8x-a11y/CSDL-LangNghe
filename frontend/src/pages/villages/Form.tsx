@@ -3,6 +3,7 @@ import {
   Card,
   Form,
   Input,
+  InputNumber,
   Button,
   Select,
   DatePicker,
@@ -23,6 +24,7 @@ import {
   getVillageById,
   createVillage,
   updateVillage,
+  geocodeAddress,
 } from '../../api/villages'
 import {
   getRegionTree,
@@ -36,6 +38,7 @@ import type {
 } from '../../types/entities'
 import { getApiErrorMessage } from '../../hooks/useApiError'
 import ImageUpload from '../../components/common/ImageUpload'
+import LocationPicker from '../../components/common/LocationPicker'
 
 const { Title } = Typography
 
@@ -46,6 +49,8 @@ interface FormValues {
   provinceId: number
   regionId: number
   address?: string
+  latitude?: number
+  longitude?: number
   recognitionDecision?: string
   recognitionDate?: Dayjs
   classificationId?: number
@@ -64,6 +69,8 @@ export const VillageForm: React.FC = () => {
 
   const [form] = Form.useForm<FormValues>()
   const selectedProvinceId = Form.useWatch('provinceId', form)
+  const latitude = Form.useWatch('latitude', form)
+  const longitude = Form.useWatch('longitude', form)
   const queryClient = useQueryClient()
 
   // 1. Tải cây địa bàn (Tỉnh -> Xã)
@@ -119,6 +126,8 @@ export const VillageForm: React.FC = () => {
         villageCode: v.villageCode,
         name: v.name,
         imageUrl: v.imageUrl ?? null,
+        latitude: v.latitude ?? undefined,
+        longitude: v.longitude ?? undefined,
         provinceId: foundProvinceId,
         regionId: v.regionId,
         address: v.address ?? undefined,
@@ -159,6 +168,25 @@ export const VillageForm: React.FC = () => {
     },
   })
 
+  const geocodeMutation = useMutation({
+    mutationFn: geocodeAddress,
+    onSuccess: (response) => {
+      if (!response.success || !response.data) {
+        message.error(response.message ?? 'Không tìm thấy tọa độ cho địa chỉ này.')
+        return
+      }
+
+      form.setFieldsValue({
+        latitude: response.data.latitude,
+        longitude: response.data.longitude,
+      })
+      message.success('Đã tìm thấy tọa độ.')
+    },
+    onError: (error) => {
+      message.error(getApiErrorMessage(error))
+    },
+  })
+
   // Xử lý đổi Tỉnh -> reset Xã
   const handleProvinceChange = () => {
     form.setFieldValue('regionId', undefined)
@@ -172,6 +200,23 @@ export const VillageForm: React.FC = () => {
     value: c.id,
   }))
 
+  const handleGeocodeAddress = () => {
+    const values = form.getFieldsValue()
+    const province = provinceList.find((item) => item.id === values.provinceId)
+    const commune = province?.children.find((item) => item.id === values.regionId)
+
+    if (!values.provinceId || !values.regionId || !province || !commune) {
+      message.warning('Vui lòng chọn Tỉnh/Thành phố và Xã/Phường trước khi tìm tọa độ')
+      return
+    }
+
+    const fullAddress = [values.address?.trim(), commune.name, province.name]
+      .filter((part): part is string => Boolean(part))
+      .join(', ')
+
+    geocodeMutation.mutate(fullAddress)
+  }
+
   const handleSubmit = async (values: FormValues) => {
     const formattedDate = values.recognitionDate
       ? values.recognitionDate.toISOString()
@@ -182,6 +227,8 @@ export const VillageForm: React.FC = () => {
         villageCode: values.villageCode.trim(),
         name: values.name.trim(),
         imageUrl: values.imageUrl || null,
+        latitude: values.latitude ?? null,
+        longitude: values.longitude ?? null,
         regionId: values.regionId,
         address: values.address?.trim() || null,
         recognitionDecision: values.recognitionDecision?.trim() || null,
@@ -199,6 +246,8 @@ export const VillageForm: React.FC = () => {
         villageCode: values.villageCode.trim(),
         name: values.name.trim(),
         imageUrl: values.imageUrl || null,
+        latitude: values.latitude ?? null,
+        longitude: values.longitude ?? null,
         regionId: values.regionId,
         address: values.address?.trim() || null,
         recognitionDecision: values.recognitionDecision?.trim() || null,
@@ -296,51 +345,6 @@ export const VillageForm: React.FC = () => {
 
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item
-                  name="provinceId"
-                  label="Tỉnh / Thành phố"
-                  rules={[{ required: true, message: 'Vui lòng chọn Tỉnh/Thành phố' }]}
-                >
-                  <Select
-                    placeholder="Chọn Tỉnh / TP"
-                    loading={isLoadingTree}
-                    showSearch
-                    filterOption={(input, option) =>
-                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                    }
-                    onChange={handleProvinceChange}
-                    options={provinceList.map((p) => ({
-                      label: `${p.regionCode} - ${p.name}`,
-                      value: p.id,
-                    }))}
-                  />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item
-                  name="regionId"
-                  label="Xã / Phường / Thị trấn"
-                  rules={[{ required: true, message: 'Vui lòng chọn Xã/Phường' }]}
-                >
-                  <Select
-                    placeholder="Chọn Xã / Phường"
-                    disabled={!selectedProvinceId}
-                    showSearch
-                    filterOption={(input, option) =>
-                      (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
-                    }
-                    options={communeOptions}
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Form.Item name="address" label="Địa chỉ cụ thể">
-              <Input placeholder="Ví dụ: Thôn 1, xã Bát Tràng" maxLength={500} />
-            </Form.Item>
-
-            <Row gutter={16}>
-              <Col span={12}>
                 <Form.Item name="recognitionDecision" label="Số quyết định công nhận">
                   <Input placeholder="Ví dụ: 1234/QĐ-UBND" maxLength={500} />
                 </Form.Item>
@@ -415,6 +419,105 @@ export const VillageForm: React.FC = () => {
                 />
               </Form.Item>
             )}
+          </Col>
+        </Row>
+
+        <Row gutter={24}>
+          <Col span={12}>
+            <Form.Item
+              name="provinceId"
+              label="Tỉnh / Thành phố"
+              rules={[{ required: true, message: 'Vui lòng chọn Tỉnh/Thành phố' }]}
+            >
+              <Select
+                placeholder="Chọn Tỉnh / TP"
+                loading={isLoadingTree}
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                onChange={handleProvinceChange}
+                options={provinceList.map((p) => ({
+                  label: `${p.regionCode} - ${p.name}`,
+                  value: p.id,
+                }))}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="regionId"
+              label="Xã / Phường / Thị trấn"
+              rules={[{ required: true, message: 'Vui lòng chọn Xã/Phường' }]}
+            >
+              <Select
+                placeholder="Chọn Xã / Phường"
+                disabled={!selectedProvinceId}
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+                options={communeOptions}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={24} align="bottom">
+          <Col span={18}>
+            <Form.Item label="Địa chỉ cụ thể">
+              <Form.Item name="address" noStyle>
+                <Input placeholder="Ví dụ: Thôn 1, xã Bát Tràng" maxLength={500} />
+              </Form.Item>
+            </Form.Item>
+          </Col>
+          <Col span={6}>
+            <Form.Item label=" ">
+              <Button
+                block
+                loading={geocodeMutation.isPending}
+                onClick={handleGeocodeAddress}
+              >
+                Tìm tọa độ tự động
+              </Button>
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={24}>
+          <Col span={12}>
+            <Form.Item name="latitude" label="Vĩ độ">
+              <InputNumber
+                min={-90}
+                max={90}
+                precision={6}
+                placeholder="Ví dụ: 21.007730"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="longitude" label="Kinh độ">
+              <InputNumber
+                min={-180}
+                max={180}
+                precision={6}
+                placeholder="Ví dụ: 105.911537"
+                style={{ width: '100%' }}
+              />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row>
+          <Col span={24}>
+            <LocationPicker
+              latitude={latitude}
+              longitude={longitude}
+              onChange={(nextLatitude, nextLongitude) =>
+                form.setFieldsValue({ latitude: nextLatitude, longitude: nextLongitude })
+              }
+            />
           </Col>
         </Row>
 

@@ -31,6 +31,16 @@ export const getVillageGeoList = async (): Promise<ApiResponse<VillageGeoDto[]>>
   return res.data
 }
 
+export const geocodeAddress = async (
+  address: string
+): Promise<ApiResponse<{ latitude: number; longitude: number }>> => {
+  const res = await apiClient.post<ApiResponse<{ latitude: number; longitude: number }>>(
+    '/villages/geocode-address',
+    { address }
+  )
+  return res.data
+}
+
 export interface VillageGeoFilter {
   provinceId?: number
   villageTypeId?: number

@@ -34,7 +34,7 @@ const ImportPreview = lazy(() => import('./pages/imports/Preview').then((module)
 const AuditLogList = lazy(() => import('./pages/audit-logs/List').then((module) => ({ default: module.AuditLogList })))
 const UserList = lazy(() => import('./pages/users/List'))
 const NotificationList = lazy(() => import('./pages/notifications/List'))
-const MapPage = lazy(() => import('./pages/map/MapPage'))
+const MapPage = lazy(() => import('./pages/map'))
 
 const LazyPage = ({ children }: { children: ReactNode }) => (
   <Suspense fallback={<PageLoading />}>{children}</Suspense>

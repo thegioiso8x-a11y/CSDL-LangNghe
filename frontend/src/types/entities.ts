@@ -28,6 +28,8 @@ export interface VillageDetailDto {
   communeName: string | null
   address: string | null
   imageUrl?: string | null
+  latitude: number | null
+  longitude: number | null
   recognitionDecision: string | null
   recognitionDate: string | null
   classificationId: number | null
@@ -65,6 +67,8 @@ export interface CreateVillageDto {
   regionId: number
   address?: string | null
   imageUrl?: string | null
+  latitude?: number | null
+  longitude?: number | null
   recognitionDecision?: string | null
   recognitionDate?: string | null
   classificationId?: number | null
@@ -79,6 +83,8 @@ export interface UpdateVillageDto {
   regionId: number
   address?: string | null
   imageUrl?: string | null
+  latitude?: number | null
+  longitude?: number | null
   recognitionDecision?: string | null
   recognitionDate?: string | null
   classificationId?: number | null

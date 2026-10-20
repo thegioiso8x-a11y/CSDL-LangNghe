@@ -206,3 +206,10 @@ API integration:
 - `pages/notifications/List.tsx` — trang danh sách đầy đủ + filter + pagination
 - Route `/notifications`
 - Tích hợp Bell vào MainLayout (trước dropdown user)
+
+### ✅ GIS (Bản đồ số) — Hoàn tất 100%
+
+- **GIS-1+2**: Entity có Latitude/Longitude; `NominatimGeocodingService`; API `POST /villages/{id}/geocode` và `POST /villages/geocode-address`; Rate limit 1.1s.
+- **GIS-3**: Trang `/map` hiển thị bản đồ toàn cảnh VN (center 106.299, 16.0, zoom 4.5), filter Tỉnh/Loại hình/Keyword, marker đỏ, popup thông tin.
+- **GIS-4**: `LocationPicker` trong Form Tạo/Sửa làng nghề; Nút "Tìm tọa độ tự động"; `BatchGeocodeJob` chạy Hangfire 1h sáng hàng ngày.
+- **Kiến trúc Frontend MapLibre**: Nhúng CDN vào `index.html`, dùng biến toàn cục `window.maplibregl` để triệt tiêu lỗi Vite Worker/White Screen. Ép `map.resize()` trong `setTimeout` để chống xẹp chiều cao trong Ant Form.

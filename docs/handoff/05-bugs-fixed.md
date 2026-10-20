@@ -25,6 +25,10 @@
 | 21 | `SubmitDraftCommand` không tạo SubmissionWorkflow | Tách riêng: Submit API phải gọi `POST /submissions/submit` |
 | 22 | 3 SaveChangesAsync rải rác trong Import → partial state | Gộp còn 2 (Failed early + final), rollback tự động |
 | 23 | `GetDashboardMetricsQuery` không validate DataScope | Chặn user Tỉnh/Xã xem vùng khác |
+| 24 | MapLibre báo lỗi `Worker failed to load` trên Vite | Chuyển sang nhúng thư viện qua CDN (`window.maplibregl`) thay vì import NPM. |
+| 25 | Bản đồ xám hoặc xẹp chiều cao 0px trong Ant Form | Gọi `map.resize()` trong `setTimeout` + set `minHeight: 400px` cho container. |
+| 26 | White Screen toàn trang do AI tự đổi Named Export thành Default Export | Kiểm tra chéo bằng `grep` giữa file export và file import. |
+| 27 | Lỗi AbortError của MapLibre khi React StrictMode unmount | Bọc hàm `map.remove()` trong khối `try/catch`. |
 
 ## Nguyên tắc rút ra
 

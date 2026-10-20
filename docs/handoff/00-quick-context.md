@@ -14,6 +14,7 @@ CMS nội bộ quản lý làng nghề VN cho Bộ NN&PTNT.
 - Làng nghề CRUD + Ownership check
 - Product + Artisan CRUD
 - PeriodicMetric (47 chỉ tiêu) + Copy kỳ trước
+- Bản đồ số (GIS): Bản đồ làng nghề, Geocode tự động, Batch geocode job.
 
 ## Đang làm tiếp
 - 6D: Draft form + Workflow submit (Xã → Tỉnh → TW)

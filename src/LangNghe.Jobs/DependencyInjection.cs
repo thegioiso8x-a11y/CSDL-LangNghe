@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<RebuildAggJob>();
         services.AddScoped<CleanupTokenJob>();
         services.AddScoped<CleanupAuditJob>();
+        services.AddScoped<BatchGeocodeJob>();
 
         return services;
     }
@@ -60,5 +61,10 @@ public static class DependencyInjection
             "cleanup-audit-daily",
             job => job.RunAsync(),
             "0 4 * * *");
+
+        manager.AddOrUpdate<BatchGeocodeJob>(
+            "batch-geocode-villages",
+            job => job.RunAsync(CancellationToken.None),
+            "0 1 * * *");
     }
 }
