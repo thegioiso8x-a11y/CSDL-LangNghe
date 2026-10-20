@@ -1,0 +1,65 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Quần đảo Hoàng Sa",
+        "type": "archipelago"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [112.0, 16.5]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Quần đảo Trường Sa",
+        "type": "archipelago"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [114.0, 9.0]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Vùng biển Hoàng Sa",
+        "type": "area"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [111.0, 15.75],
+            [113.0, 15.75],
+            [113.0, 17.25],
+            [111.0, 17.25],
+            [111.0, 15.75]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Vùng biển Trường Sa",
+        "type": "area"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [111.5, 6.5],
+            [117.33, 6.5],
+            [117.33, 12.0],
+            [111.5, 12.0],
+            [111.5, 6.5]
+          ]
+        ]
+      }
+    }
+  ]
+}

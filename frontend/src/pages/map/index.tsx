@@ -11,6 +11,73 @@ const { Title, Text } = Typography
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
 const maplibregl = (window as any).maplibregl
 
+// Dữ liệu GeoJSON Quần đảo và Vùng biển Hoàng Sa, Trường Sa
+const VIETNAM_ARCHIPELAGOS_GEOJSON = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      properties: {
+        name: 'Quần đảo Hoàng Sa',
+        type: 'archipelago',
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: [112.0, 16.5],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        name: 'Quần đảo Trường Sa',
+        type: 'archipelago',
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: [114.0, 9.0],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        name: 'Vùng biển Hoàng Sa',
+        type: 'area',
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [111.0, 15.75],
+            [113.0, 15.75],
+            [113.0, 17.25],
+            [111.0, 17.25],
+            [111.0, 15.75],
+          ],
+        ],
+      },
+    },
+    {
+      type: 'Feature',
+      properties: {
+        name: 'Vùng biển Trường Sa',
+        type: 'area',
+      },
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [111.5, 6.5],
+            [117.33, 6.5],
+            [117.33, 12.0],
+            [111.5, 12.0],
+            [111.5, 6.5],
+          ],
+        ],
+      },
+    },
+  ],
+}
+
 interface GeoFilters {
   provinceId?: number
   villageTypeId?: number
@@ -104,22 +171,106 @@ export default function MapPage() {
   useEffect(() => {
     if (!mapContainer.current || !maplibregl || map.current) return
 
-    map.current = new maplibregl.Map({
+    const mapInstance = new maplibregl.Map({
       container: mapContainer.current,
       style: MAP_STYLE,
-      center: [106.299, 16.0],
+      center: [108.5, 14.5], // Dịch tâm nhẹ về phía Đông để bao quát cả đất liền và biển đảo
       zoom: 4.5,
     })
-    map.current.addControl(new maplibregl.NavigationControl(), 'top-right')
+    map.current = mapInstance
+    mapInstance.addControl(new maplibregl.NavigationControl(), 'top-right')
+
+    mapInstance.on('load', () => {
+      // 1. Ưu tiên hiển thị tên tiếng Việt trên các lớp nhãn của bản đồ nền
+      const style = mapInstance.getStyle()
+      style?.layers?.forEach((layer: any) => {
+        if (layer.type === 'symbol' && layer.layout?.['text-field']) {
+          mapInstance.setLayoutProperty(layer.id, 'text-field', [
+            'coalesce',
+            ['get', 'name:vi'],
+            ['get', 'name'],
+          ])
+        }
+      })
+
+      // 2. Thêm nguồn dữ liệu GeoJSON cho Hoàng Sa và Trường Sa
+      if (!mapInstance.getSource('vietnam-archipelagos')) {
+        mapInstance.addSource('vietnam-archipelagos', {
+          type: 'geojson',
+          data: VIETNAM_ARCHIPELAGOS_GEOJSON,
+        })
+
+        // Lớp nền vùng biển (Polygon)
+        mapInstance.addLayer({
+          id: 'archipelagos-area-fill',
+          type: 'fill',
+          source: 'vietnam-archipelagos',
+          filter: ['==', ['get', 'type'], 'area'],
+          paint: {
+            'fill-color': '#1677ff',
+            'fill-opacity': 0.06,
+          },
+        })
+
+        // Lớp đường viền nét đứt vùng biển (Polygon)
+        mapInstance.addLayer({
+          id: 'archipelagos-area-outline',
+          type: 'line',
+          source: 'vietnam-archipelagos',
+          filter: ['==', ['get', 'type'], 'area'],
+          paint: {
+            'line-color': '#cf1322',
+            'line-width': 1.5,
+            'line-dasharray': [4, 3],
+            'line-opacity': 0.7,
+          },
+        })
+
+        // Lớp chấm tròn đánh dấu vị trí tâm quần đảo (Point)
+        mapInstance.addLayer({
+          id: 'archipelagos-point',
+          type: 'circle',
+          source: 'vietnam-archipelagos',
+          filter: ['==', ['get', 'type'], 'archipelago'],
+          paint: {
+            'circle-radius': 5,
+            'circle-color': '#cf1322',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ffffff',
+          },
+        })
+
+        // Lớp nhãn tên "Quần đảo Hoàng Sa" và "Quần đảo Trường Sa"
+        mapInstance.addLayer({
+          id: 'archipelagos-label',
+          type: 'symbol',
+          source: 'vietnam-archipelagos',
+          filter: ['==', ['get', 'type'], 'archipelago'],
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-font': ['Noto Sans Bold'],
+            'text-size': 13,
+            'text-offset': [0, 0.8],
+            'text-anchor': 'top',
+            'text-allow-overlap': true,
+          },
+          paint: {
+            'text-color': '#cf1322',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 2,
+          },
+        })
+      }
+    })
 
     // Ép MapLibre tính lại kích thước sau khi khung trang đã render hoàn chỉnh.
     setTimeout(() => {
-      map.current?.resize()
+      mapInstance.resize()
     }, 200)
 
     return () => {
       popup.current?.remove()
-      map.current?.remove()
+      mapInstance.remove()
       map.current = null
       markers.current = []
       popup.current = null
@@ -204,16 +355,21 @@ export default function MapPage() {
         </Space>
       </Card>
 
-      {villages.length === 0 ? (
-        <Card>
+      {villages.length === 0 && (
+        <Card style={{ marginBottom: 16 }}>
           <Empty description="Không tìm thấy làng nghề đã có tọa độ phù hợp." />
         </Card>
-      ) : (
-        <div
-          ref={mapContainer}
-          style={{ height: 'calc(100vh - 230px)', minHeight: 480, width: '100%' }}
-        />
       )}
+
+      <div
+        ref={mapContainer}
+        style={{
+          display: villages.length === 0 ? 'none' : 'block',
+          height: 'calc(100vh - 230px)',
+          minHeight: 480,
+          width: '100%',
+        }}
+      />
     </div>
   )
 }
