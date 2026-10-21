@@ -80,14 +80,44 @@ Route `/api/v1/periodic-metrics` (**chú ý Id là `long`**):
 - GrowthRate ∈ [-100, 100]
 - ProductionProcess ∈ {Truyền thống, Hiện đại, Kết hợp}
 
-### ✅ Import Excel (Đợt 7)
-- 3 template: V1_FULL (47 cột), V1_MINIMAL (8-11 cột), MONTHLY
-- 4 mode: MERGE / REPLACE_FULL / INSERT_ONLY / UPDATE_ONLY
-- Endpoints `/api/v1/imports`: upload, preview, list, rollback
-- Bảng: Import_History (PK Guid), Staging_RawImport, Import_Error_Log, Import_TemplateConfig
-- Rollback > 10% lỗi tự động
-- Service trong `LangNghe.Application/Features/Import/` (không tách project)
+### ✅ Import Excel (Đợt 7) — VERIFIED TỪ DB 2026-10-21
 
+**⚠️ Sự thật từ DB (khác tài liệu cũ):**
+- Database **CHỈ có 1 template active: V1_MINIMAL** (11 cột tiếng Việt không dấu).
+- V1_FULL và MONTHLY **chưa được seed** vào bảng `Import_TemplateConfig`.
+- Tài liệu cũ ghi "3 template: V1_FULL 47 cột, V1_MINIMAL 8-11 cột, MONTHLY" là **sai/thiếu** — phải verify DB.
+
+**Cấu trúc V1_MINIMAL (11 cột, từ `Import_TemplateConfig`):**
+
+| # | Header | FieldName | Type | Req |
+|---|---|---|---|---|
+| 1 | Ma lang nghe | VillageCode | string | ✅ |
+| 2 | Ten lang nghe | Name | string | ✅ |
+| 3 | Ma xa | **RegionId** | **int** | ✅ |
+| 4 | Ngay cong nhan | RecognitionDate | datetime | ✅ |
+| 5 | Quyet dinh | RecognitionDecision | string | ✅ |
+| 6 | Phan loai | **ClassificationId** | **int** | ✅ |
+| 7 | Loai hinh | **VillageTypeId** | **int** | ✅ |
+| 8 | Nhom nganh | **IndustryGroupId** | **int** | ✅ |
+| 9 | Dia chi | Address | string | ⬜ |
+| 10 | Can phuc hoi | NeedRestoration | bool | ⬜ |
+| 11 | Trang thai | Status | int | ⬜ |
+
+**Quan trọng:** Các cột `RegionId/ClassificationId/VillageTypeId/IndustryGroupId` là **INT** (ID nội bộ VD: 1, 8, 35) — KHÔNG phải mã string ("01", "LNTT").
+
+**Chế độ:** MERGE / REPLACE_FULL / INSERT_ONLY / UPDATE_ONLY.
+
+**Endpoints `/api/v1/imports`:**
+- `POST /upload` — multipart (file, templateCode, importMode)
+- `GET /{batchId:guid}/preview` — chi tiết lỗi
+- `GET /` — lịch sử (phân trang)
+- `POST /{batchId:guid}/rollback` — đánh dấu rollback
+
+**Rollback tự động:** > 10% dòng lỗi.
+
+**Lưu ý sinh file Excel (openpyxl):**
+- Set `wb.properties.created/modified = datetime(2026,1,1)` — KHÔNG gán `None` (gây crash ClosedXML).
+- Backend dò Sheet có header khớp config (không lấy Sheet đầu tiên).
 ### ✅ Dashboard + Agg (Đợt 8)
 - Agg rebuild THỦ CÔNG qua `POST /api/v1/aggregation/rebuild` (Hangfire để sau)
 - 3 bảng Agg: VillageTimeSeries, IndustryGroupAggregate, VillageTypeAggregate
