@@ -23,16 +23,17 @@ public class UploadsController : ControllerBase
     /// <summary>
     /// Upload 1 ảnh. Trả về URL tương đối để FE lưu vào entity.
     /// </summary>
-    /// <param name="file">File ảnh (.jpg, .jpeg, .png, .webp, .gif — max 5MB)</param>
-    /// <param name="category">Loại entity: villages, products, artisans</param>
+    /// <param name="request">Thông tin file và category</param>
     /// <param name="ct">Token hủy thao tác upload.</param>
     [HttpPost("image")]
     [RequestSizeLimit(5 * 1024 * 1024)]
     public async Task<ActionResult<ApiResponse<string>>> UploadImage(
-        [FromForm] IFormFile file,
-        [FromForm] string category,
+        [FromForm] UploadImageRequest request,
         CancellationToken ct)
     {
+        var file = request.File;
+        var category = request.Category;
+
         if (file == null || file.Length == 0)
             return BadRequest(ApiResponse<object>.Fail("File rỗng."));
 

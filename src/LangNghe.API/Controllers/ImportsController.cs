@@ -37,11 +37,13 @@ public class ImportsController : ControllerBase
     [HttpPost("upload")]
     [Authorize(Policy = "ImportUpload")]
     public async Task<ActionResult<ApiResponse<ImportResultDto>>> Upload(
-        [FromForm] IFormFile file,
-        [FromForm] string templateCode,
-        [FromForm] string importMode,
+        [FromForm] UploadImportRequest request,
         CancellationToken ct)
     {
+        var file = request.File;
+        var templateCode = request.TemplateCode;
+        var importMode = request.ImportMode;
+
         if (file == null || file.Length == 0)
             throw new BusinessException("File không được trống");
 

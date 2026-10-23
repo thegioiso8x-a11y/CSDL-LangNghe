@@ -43,7 +43,8 @@ public class ExcelTemplateService : IExcelTemplateService
         if (!allConfigs.Any())
             return string.Empty;
 
-        var actualHeaders = GetHeadersFromStream(stream);
+        var allExpectedHeaders = allConfigs.Select(x => x.ExcelColumnHeader.Trim().ToLowerInvariant()).Distinct().ToList();
+        var actualHeaders = GetHeadersFromStream(stream, allExpectedHeaders);
         if (!actualHeaders.Any())
             return string.Empty;
 
@@ -77,7 +78,7 @@ public class ExcelTemplateService : IExcelTemplateService
         if (!requiredHeaders.Any())
             return true;
 
-        var actualHeaders = GetHeadersFromStream(stream).Select(x => x.Trim().ToLowerInvariant()).ToList();
+        var actualHeaders = GetHeadersFromStream(stream, requiredHeaders).Select(x => x.Trim().ToLowerInvariant()).ToList();
 
         foreach (var requiredHeader in requiredHeaders)
         {
@@ -90,7 +91,7 @@ public class ExcelTemplateService : IExcelTemplateService
         return true;
     }
 
-    private List<string> GetHeadersFromStream(Stream stream)
+    private List<string> GetHeadersFromStream(Stream stream, List<string>? expectedHeaders = null)
     {
         var headers = new List<string>();
         try
@@ -101,20 +102,67 @@ public class ExcelTemplateService : IExcelTemplateService
             }
             
             using var workbook = new XLWorkbook(stream);
-            var worksheet = workbook.Worksheets.FirstOrDefault();
             
-            if (worksheet != null)
+            IXLWorksheet? bestSheet = null;
+            int maxMatchCount = 0;
+            var expectedSet = expectedHeaders?.Select(h => h.Trim().ToLowerInvariant()).ToHashSet();
+
+            foreach (var ws in workbook.Worksheets)
             {
-                var firstRow = worksheet.Row(1);
+                var firstRow = ws.Row(1);
                 var lastCellUsed = firstRow.LastCellUsed();
-                
-                if (lastCellUsed != null)
+                if (lastCellUsed == null) continue;
+
+                int matchCount = 0;
+                var sheetHeaders = new List<string>();
+                for (int i = 1; i <= lastCellUsed.Address.ColumnNumber; i++)
                 {
-                    int lastColNumber = lastCellUsed.Address.ColumnNumber;
-                    for (int i = 1; i <= lastColNumber; i++)
+                    var cellValue = firstRow.Cell(i).GetString();
+                    sheetHeaders.Add(cellValue ?? string.Empty);
+                    if (expectedSet != null && !string.IsNullOrEmpty(cellValue))
                     {
-                        var cellValue = firstRow.Cell(i).GetString();
-                        headers.Add(cellValue ?? string.Empty);
+                        if (expectedSet.Contains(cellValue.Trim().ToLowerInvariant()))
+                        {
+                            matchCount++;
+                        }
+                    }
+                }
+
+                // Nếu không truyền expectedHeaders, chọn Sheet đầu tiên có dữ liệu
+                if (expectedSet == null)
+                {
+                    if (sheetHeaders.Any(h => !string.IsNullOrEmpty(h)))
+                    {
+                        bestSheet = ws;
+                        headers = sheetHeaders;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (matchCount > maxMatchCount)
+                    {
+                        maxMatchCount = matchCount;
+                        bestSheet = ws;
+                        headers = sheetHeaders;
+                    }
+                }
+            }
+
+            // Fallback nếu không tìm thấy Sheet nào khớp
+            if (bestSheet == null)
+            {
+                var ws = workbook.Worksheets.FirstOrDefault();
+                if (ws != null)
+                {
+                    var firstRow = ws.Row(1);
+                    var lastCellUsed = firstRow.LastCellUsed();
+                    if (lastCellUsed != null)
+                    {
+                        for (int i = 1; i <= lastCellUsed.Address.ColumnNumber; i++)
+                        {
+                            headers.Add(firstRow.Cell(i).GetString() ?? string.Empty);
+                        }
                     }
                 }
             }

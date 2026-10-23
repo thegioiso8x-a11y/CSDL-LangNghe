@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: langnghe_api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
+      - Jwt__SecretKey=${JWT_SECRET_KEY}
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        - VITE_API_URL=/api/v1
+    container_name: langnghe_web
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  nginx:
+    image: nginx:alpine
+    container_name: langnghe_proxy
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80" # CHỈ MỞ CỔNG 8080 NỘI BỘ (Localhost của server)
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web

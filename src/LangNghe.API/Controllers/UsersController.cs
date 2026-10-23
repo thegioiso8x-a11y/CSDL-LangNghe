@@ -6,6 +6,7 @@ using LangNghe.Application.Features.User.Interfaces;
 using LangNghe.Domain.Exceptions;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.IO;
 
@@ -50,8 +51,11 @@ public class UsersController : ControllerBase
 
     /// <summary>Xem trước file Excel người dùng, chưa ghi dữ liệu.</summary>
     [HttpPost("import/preview"), Authorize(Policy = "UserManage")]
-    public async Task<ActionResult<ApiResponse<UserImportPreviewDto>>> PreviewImport([FromForm] IFormFile file, [FromForm] string importMode, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<UserImportPreviewDto>>> PreviewImport([FromForm] UserImportRequest request, CancellationToken ct)
     {
+        var file = request.File;
+        var importMode = request.ImportMode;
+
         ValidateImportFile(file);
         using var stream = file.OpenReadStream();
         return Ok(ApiResponse<UserImportPreviewDto>.Ok(await _userImportService.PreviewAsync(stream, importMode, ct)));
@@ -59,8 +63,12 @@ public class UsersController : ControllerBase
 
     /// <summary>Import chính thức danh sách người dùng từ file Excel.</summary>
     [HttpPost("import"), Authorize(Policy = "UserManage")]
-    public async Task<ActionResult<ApiResponse<UserImportResultDto>>> Import([FromForm] IFormFile file, [FromForm] string importMode, [FromForm] bool skipErrors, CancellationToken ct)
+    public async Task<ActionResult<ApiResponse<UserImportResultDto>>> Import([FromForm] UserImportRequest request, CancellationToken ct)
     {
+        var file = request.File;
+        var importMode = request.ImportMode;
+        var skipErrors = request.SkipErrors;
+
         ValidateImportFile(file);
         using var stream = file.OpenReadStream();
         var result = await _userImportService.ImportAsync(stream, file.FileName, file.Length, importMode, skipErrors, ct);

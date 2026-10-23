@@ -1,0 +1,21 @@
+# Stage 1: Build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+COPY ["src/LangNghe.API/LangNghe.API.csproj", "src/LangNghe.API/"]
+COPY ["src/LangNghe.Application/LangNghe.Application.csproj", "src/LangNghe.Application/"]
+COPY ["src/LangNghe.Domain/LangNghe.Domain.csproj", "src/LangNghe.Domain/"]
+COPY ["src/LangNghe.Infrastructure/LangNghe.Infrastructure.csproj", "src/LangNghe.Infrastructure/"]
+COPY ["src/LangNghe.Jobs/LangNghe.Jobs.csproj", "src/LangNghe.Jobs/"]
+RUN dotnet restore "src/LangNghe.API/LangNghe.API.csproj"
+
+COPY . .
+WORKDIR "/src/src/LangNghe.API"
+RUN dotnet publish "LangNghe.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+# Stage 2: Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+ENTRYPOINT ["dotnet", "LangNghe.API.dll"]

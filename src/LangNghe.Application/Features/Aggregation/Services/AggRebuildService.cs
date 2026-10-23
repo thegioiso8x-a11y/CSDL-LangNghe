@@ -39,26 +39,36 @@ public class AggRebuildService : IAggRebuildService
 
         if (!metrics.Any()) return;
 
+        // 1. Xóa dữ liệu cũ của kỳ này để tránh trùng lặp
+        var existingAggs = await _context.VillageTimeSeries
+            .AsTracking()
+            .Where(x => x.Period == period && x.PeriodType == periodType)
+            .ToListAsync(ct);
+        
+        _context.VillageTimeSeries.RemoveRange(existingAggs);
+        await _context.SaveChangesAsync(ct);
+
         var contributions = new List<(int RegionId, byte RegionLevel, int? ParentRegionId, VillagePeriodicMetric Metric)>();
         foreach (var m in metrics)
         {
+            // Bỏ qua nếu dữ liệu tỉnh/xã bị lỗi
+            if (m.ProvinceId <= 0) continue; 
+
             contributions.Add((m.ProvinceId, 1, null, m));
-            contributions.Add((m.CommuneId, 2, m.ProvinceId, m));
+            if (m.CommuneId > 0)
+            {
+                contributions.Add((m.CommuneId, 2, m.ProvinceId, m));
+            }
         }
 
         var grouped = contributions.GroupBy(x => new { x.RegionId, x.RegionLevel, x.ParentRegionId });
         var now = DateTime.UtcNow;
 
-        var existingAggs = await _context.VillageTimeSeries
-            .AsTracking()
-            .Where(x => x.Period == period && x.PeriodType == periodType)
-            .ToDictionaryAsync(x => x.RegionId, ct);
-
+        // 2. Lưu dữ liệu cấp Tỉnh và Xã
         foreach (var g in grouped)
         {
             var mList = g.Select(x => x.Metric).ToList();
             var totalVillages = mList.Select(x => x.CraftVillageId).Distinct().Count();
-            
             var totalRevenue = mList.Sum(x => x.Revenue);
             var totalLabor = mList.Sum(x => (long)x.TotalLabor);
 
@@ -94,137 +104,54 @@ public class AggRebuildService : IAggRebuildService
                 CalculatedBy = "Manual"
             };
 
-            if (existingAggs.TryGetValue(g.Key.RegionId, out var existing))
-            {
-                existing.RegionLevel = newAgg.RegionLevel;
-                existing.ParentRegionId = newAgg.ParentRegionId;
-                existing.TotalVillages = newAgg.TotalVillages;
-                existing.TraditionalVillages = newAgg.TraditionalVillages;
-                existing.NewVillages = newAgg.NewVillages;
-                existing.RestoredVillages = newAgg.RestoredVillages;
-                existing.OcopVillages = newAgg.OcopVillages;
-                existing.EffectiveVillages = newAgg.EffectiveVillages;
-                existing.TotalHouseholds = newAgg.TotalHouseholds;
-                existing.TotalEnterprises = newAgg.TotalEnterprises;
-                existing.TotalLabor = newAgg.TotalLabor;
-                existing.TrainedLabor = newAgg.TrainedLabor;
-                existing.TotalArtisans = newAgg.TotalArtisans;
-                existing.TotalArea = newAgg.TotalArea;
-                existing.TotalRevenue = newAgg.TotalRevenue;
-                existing.TotalExportValue = newAgg.TotalExportValue;
-                existing.AvgRevenuePerVillage = newAgg.AvgRevenuePerVillage;
-                existing.AvgIncome = newAgg.AvgIncome;
-                existing.AvgGrowthRate = newAgg.AvgGrowthRate;
-                existing.DigitalizedVillages = newAgg.DigitalizedVillages;
-                existing.EnvCompliantVillages = newAgg.EnvCompliantVillages;
-                existing.TourismVillages = newAgg.TourismVillages;
-                existing.TotalVisitors = newAgg.TotalVisitors;
-                existing.LastUpdated = newAgg.LastUpdated;
-                existing.CalculatedBy = newAgg.CalculatedBy;
-            }
-            else
-            {
-                _context.VillageTimeSeries.Add(newAgg);
-            }
+            _context.VillageTimeSeries.Add(newAgg);
         }
+
+        // 3. Tính toán trực tiếp bản ghi Toàn quốc (RegionId = 0) từ danh sách metrics gốc
+        var totalVillagesNat = metrics.Select(x => x.CraftVillageId).Distinct().Count();
+        var totalRevenueNat = metrics.Sum(x => x.Revenue);
+        var totalLaborNat = metrics.Sum(x => (long)x.TotalLabor);
+
+        var nationalAggregate = new VillageTimeSeries
+        {
+            RegionId = 0,
+            RegionLevel = 0,
+            ParentRegionId = null,
+            Period = period,
+            PeriodType = periodType,
+            TotalVillages = totalVillagesNat,
+            TraditionalVillages = metrics.Count(x => x.CraftVillage?.VillageType?.Code == "LNTT"),
+            NewVillages = metrics.Count(x => x.CraftVillage?.VillageType?.Code == "LNM"),
+            RestoredVillages = metrics.Count(x => x.CraftVillage?.NeedRestoration == true || x.CraftVillage?.VillageType?.IsRestored == true),
+            OcopVillages = metrics.Count(x => x.HasOCOP3Star),
+            EffectiveVillages = metrics.Count(x => (x.ActiveMonths ?? 0) >= 9 && x.Revenue > 0),
+            TotalHouseholds = metrics.Sum(x => x.HouseholdCount),
+            TotalEnterprises = metrics.Sum(x => x.EnterpriseCount),
+            TotalLabor = totalLaborNat,
+            TrainedLabor = metrics.Sum(x => (long)(x.TotalLabor * (x.TrainedLaborRate ?? 0) / 100)),
+            TotalArtisans = metrics.Sum(x => x.ArtisanCount),
+            TotalArea = metrics.Sum(x => x.ProductionArea ?? 0m),
+            TotalRevenue = totalRevenueNat,
+            TotalExportValue = metrics.Sum(x => x.Revenue * (x.ExportRate / 100)),
+            AvgRevenuePerVillage = totalVillagesNat > 0 ? totalRevenueNat / totalVillagesNat : 0,
+            AvgIncome = metrics.Any(x => x.AvgIncome.HasValue) ? metrics.Where(x => x.AvgIncome.HasValue).Average(x => x.AvgIncome) : null,
+            AvgGrowthRate = metrics.Any(x => x.GrowthRate.HasValue) ? metrics.Where(x => x.GrowthRate.HasValue).Average(x => x.GrowthRate) : null,
+            DigitalizedVillages = metrics.Count(x => (x.DigitalLevel ?? 0) > 0 || x.HasWebsite),
+            EnvCompliantVillages = metrics.Count(x => x.HasWasteCollection && x.HasWasteWaterSystem && x.HasSolidWasteSystem),
+            TourismVillages = metrics.Count(x => x.HasTourismActivity),
+            TotalVisitors = metrics.Sum(x => x.AnnualVisitors ?? 0L),
+            LastUpdated = now,
+            CalculatedBy = "Manual-National"
+        };
+
+        _context.VillageTimeSeries.Add(nationalAggregate);
 
         await _context.SaveChangesAsync(ct);
 
+        _cacheService.Invalidate(period, periodType, 0);
         foreach (var rId in grouped.Select(x => x.Key.RegionId).Distinct())
         {
             _cacheService.Invalidate(period, periodType, rId);
-        }
-
-        // Roll-up từ cấp Tỉnh để tạo một bản ghi tổng hợp Toàn quốc (RegionId = 0).
-        var provinceAggregates = await _context.VillageTimeSeries
-            .AsNoTracking()
-            .Where(x => x.Period == period && x.PeriodType == periodType && x.RegionLevel == 1)
-            .ToListAsync(ct);
-
-        if (provinceAggregates.Count > 0)
-        {
-            var totalVillages = provinceAggregates.Sum(x => x.TotalVillages);
-            var totalLabor = provinceAggregates.Sum(x => x.TotalLabor);
-            var totalRevenue = provinceAggregates.Sum(x => x.TotalRevenue);
-            var totalExportValue = provinceAggregates.Sum(x => x.TotalExportValue);
-            var incomeAggregates = provinceAggregates.Where(x => x.AvgIncome.HasValue).ToList();
-            var growthAggregates = provinceAggregates.Where(x => x.AvgGrowthRate.HasValue).ToList();
-            var incomeLabor = incomeAggregates.Sum(x => x.TotalLabor);
-            var growthVillages = growthAggregates.Sum(x => x.TotalVillages);
-
-            var nationalAggregate = new VillageTimeSeries
-            {
-                RegionId = 0,
-                RegionLevel = 0,
-                ParentRegionId = null,
-                Period = period,
-                PeriodType = periodType,
-                TotalVillages = totalVillages,
-                TraditionalVillages = provinceAggregates.Sum(x => x.TraditionalVillages),
-                NewVillages = provinceAggregates.Sum(x => x.NewVillages),
-                RestoredVillages = provinceAggregates.Sum(x => x.RestoredVillages),
-                OcopVillages = provinceAggregates.Sum(x => x.OcopVillages),
-                EffectiveVillages = provinceAggregates.Sum(x => x.EffectiveVillages),
-                TotalHouseholds = provinceAggregates.Sum(x => x.TotalHouseholds),
-                TotalEnterprises = provinceAggregates.Sum(x => x.TotalEnterprises),
-                TotalLabor = totalLabor,
-                TrainedLabor = provinceAggregates.Sum(x => x.TrainedLabor),
-                TotalArtisans = provinceAggregates.Sum(x => x.TotalArtisans),
-                TotalArea = provinceAggregates.Any(x => x.TotalArea.HasValue)
-                    ? provinceAggregates.Sum(x => x.TotalArea ?? 0m)
-                    : null,
-                TotalRevenue = totalRevenue,
-                TotalExportValue = totalExportValue,
-                AvgRevenuePerVillage = totalVillages > 0 ? totalRevenue / totalVillages : 0,
-                AvgIncome = incomeLabor > 0
-                    ? incomeAggregates.Sum(x => x.AvgIncome!.Value * x.TotalLabor) / incomeLabor
-                    : null,
-                AvgGrowthRate = growthVillages > 0
-                    ? growthAggregates.Sum(x => x.AvgGrowthRate!.Value * x.TotalVillages) / growthVillages
-                    : null,
-                DigitalizedVillages = provinceAggregates.Sum(x => x.DigitalizedVillages),
-                EnvCompliantVillages = provinceAggregates.Sum(x => x.EnvCompliantVillages),
-                TourismVillages = provinceAggregates.Sum(x => x.TourismVillages),
-                TotalVisitors = provinceAggregates.Sum(x => x.TotalVisitors),
-                LastUpdated = DateTime.UtcNow,
-                CalculatedBy = "Manual-Rollup"
-            };
-
-            if (existingAggs.TryGetValue(0, out var existingNational))
-            {
-                existingNational.RegionLevel = nationalAggregate.RegionLevel;
-                existingNational.ParentRegionId = nationalAggregate.ParentRegionId;
-                existingNational.TotalVillages = nationalAggregate.TotalVillages;
-                existingNational.TraditionalVillages = nationalAggregate.TraditionalVillages;
-                existingNational.NewVillages = nationalAggregate.NewVillages;
-                existingNational.RestoredVillages = nationalAggregate.RestoredVillages;
-                existingNational.OcopVillages = nationalAggregate.OcopVillages;
-                existingNational.EffectiveVillages = nationalAggregate.EffectiveVillages;
-                existingNational.TotalHouseholds = nationalAggregate.TotalHouseholds;
-                existingNational.TotalEnterprises = nationalAggregate.TotalEnterprises;
-                existingNational.TotalLabor = nationalAggregate.TotalLabor;
-                existingNational.TrainedLabor = nationalAggregate.TrainedLabor;
-                existingNational.TotalArtisans = nationalAggregate.TotalArtisans;
-                existingNational.TotalArea = nationalAggregate.TotalArea;
-                existingNational.TotalRevenue = nationalAggregate.TotalRevenue;
-                existingNational.TotalExportValue = nationalAggregate.TotalExportValue;
-                existingNational.AvgRevenuePerVillage = nationalAggregate.AvgRevenuePerVillage;
-                existingNational.AvgIncome = nationalAggregate.AvgIncome;
-                existingNational.AvgGrowthRate = nationalAggregate.AvgGrowthRate;
-                existingNational.DigitalizedVillages = nationalAggregate.DigitalizedVillages;
-                existingNational.EnvCompliantVillages = nationalAggregate.EnvCompliantVillages;
-                existingNational.TourismVillages = nationalAggregate.TourismVillages;
-                existingNational.TotalVisitors = nationalAggregate.TotalVisitors;
-                existingNational.LastUpdated = nationalAggregate.LastUpdated;
-                existingNational.CalculatedBy = nationalAggregate.CalculatedBy;
-            }
-            else
-            {
-                _context.VillageTimeSeries.Add(nationalAggregate);
-            }
-
-            await _context.SaveChangesAsync(ct);
-            _cacheService.Invalidate(period, periodType, 0);
         }
     }
 
@@ -238,22 +165,25 @@ public class AggRebuildService : IAggRebuildService
 
         if (!metrics.Any()) return;
 
+        var existingAggs = await _context.IndustryGroupAggregates
+            .AsTracking()
+            .Where(x => x.Period == period && x.PeriodType == periodType)
+            .ToListAsync(ct);
+        
+        _context.IndustryGroupAggregates.RemoveRange(existingAggs);
+        await _context.SaveChangesAsync(ct);
+
         var contributions = new List<(int IndustryGroupId, int RegionId, byte RegionLevel, VillagePeriodicMetric Metric)>();
         foreach (var m in metrics)
         {
             var indId = m.CraftVillage!.IndustryGroupId!.Value;
             contributions.Add((indId, 0, 0, m)); // National
-            contributions.Add((indId, m.ProvinceId, 1, m)); // Province
-            contributions.Add((indId, m.CommuneId, 2, m)); // Commune
+            if (m.ProvinceId > 0) contributions.Add((indId, m.ProvinceId, 1, m)); // Province
+            if (m.CommuneId > 0) contributions.Add((indId, m.CommuneId, 2, m)); // Commune
         }
 
         var grouped = contributions.GroupBy(x => new { x.IndustryGroupId, x.RegionId, x.RegionLevel });
         var now = DateTime.UtcNow;
-
-        var existingAggs = await _context.IndustryGroupAggregates
-            .AsTracking()
-            .Where(x => x.Period == period && x.PeriodType == periodType)
-            .ToDictionaryAsync(x => $"{x.IndustryGroupId}_{x.RegionId}", ct);
 
         foreach (var g in grouped)
         {
@@ -271,25 +201,11 @@ public class AggRebuildService : IAggRebuildService
                 TotalExportValue = mList.Sum(x => x.Revenue * (x.ExportRate / 100)),
                 LastUpdated = now
             };
-
-            var key = $"{g.Key.IndustryGroupId}_{g.Key.RegionId}";
-            if (existingAggs.TryGetValue(key, out var existing))
-            {
-                existing.RegionLevel = newAgg.RegionLevel;
-                existing.TotalVillages = newAgg.TotalVillages;
-                existing.TotalRevenue = newAgg.TotalRevenue;
-                existing.TotalLabor = newAgg.TotalLabor;
-                existing.TotalExportValue = newAgg.TotalExportValue;
-                existing.LastUpdated = newAgg.LastUpdated;
-            }
-            else
-            {
-                _context.IndustryGroupAggregates.Add(newAgg);
-            }
+            _context.IndustryGroupAggregates.Add(newAgg);
         }
 
         await _context.SaveChangesAsync(ct);
-
+        _cacheService.Invalidate(period, periodType, 0);
         foreach (var rId in grouped.Select(x => x.Key.RegionId).Distinct())
         {
             _cacheService.Invalidate(period, periodType, rId);
@@ -306,22 +222,25 @@ public class AggRebuildService : IAggRebuildService
 
         if (!metrics.Any()) return;
 
+        var existingAggs = await _context.VillageTypeAggregates
+            .AsTracking()
+            .Where(x => x.Period == period && x.PeriodType == periodType)
+            .ToListAsync(ct);
+            
+        _context.VillageTypeAggregates.RemoveRange(existingAggs);
+        await _context.SaveChangesAsync(ct);
+
         var contributions = new List<(int VillageTypeId, int RegionId, byte RegionLevel, VillagePeriodicMetric Metric)>();
         foreach (var m in metrics)
         {
             var vtId = m.CraftVillage!.VillageTypeId!.Value;
             contributions.Add((vtId, 0, 0, m)); // National
-            contributions.Add((vtId, m.ProvinceId, 1, m)); // Province
-            contributions.Add((vtId, m.CommuneId, 2, m)); // Commune
+            if (m.ProvinceId > 0) contributions.Add((vtId, m.ProvinceId, 1, m)); // Province
+            if (m.CommuneId > 0) contributions.Add((vtId, m.CommuneId, 2, m)); // Commune
         }
 
         var grouped = contributions.GroupBy(x => new { x.VillageTypeId, x.RegionId, x.RegionLevel });
         var now = DateTime.UtcNow;
-
-        var existingAggs = await _context.VillageTypeAggregates
-            .AsTracking()
-            .Where(x => x.Period == period && x.PeriodType == periodType)
-            .ToDictionaryAsync(x => $"{x.VillageTypeId}_{x.RegionId}", ct);
 
         foreach (var g in grouped)
         {
@@ -338,24 +257,11 @@ public class AggRebuildService : IAggRebuildService
                 TotalLabor = mList.Sum(x => (long)x.TotalLabor),
                 LastUpdated = now
             };
-
-            var key = $"{g.Key.VillageTypeId}_{g.Key.RegionId}";
-            if (existingAggs.TryGetValue(key, out var existing))
-            {
-                existing.RegionLevel = newAgg.RegionLevel;
-                existing.TotalVillages = newAgg.TotalVillages;
-                existing.TotalRevenue = newAgg.TotalRevenue;
-                existing.TotalLabor = newAgg.TotalLabor;
-                existing.LastUpdated = newAgg.LastUpdated;
-            }
-            else
-            {
-                _context.VillageTypeAggregates.Add(newAgg);
-            }
+            _context.VillageTypeAggregates.Add(newAgg);
         }
 
         await _context.SaveChangesAsync(ct);
-
+        _cacheService.Invalidate(period, periodType, 0);
         foreach (var rId in grouped.Select(x => x.Key.RegionId).Distinct())
         {
             _cacheService.Invalidate(period, periodType, rId);

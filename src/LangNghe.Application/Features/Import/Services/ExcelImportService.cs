@@ -52,7 +52,37 @@ public class ExcelImportService : IExcelImportService
         }
 
         using var workbook = new XLWorkbook(stream);
-        var worksheet = workbook.Worksheets.FirstOrDefault();
+
+        // Tìm Sheet có chứa nhiều cột khớp nhất với Template cấu hình
+        var expectedHeaders = configs.Select(c => c.ExcelColumnHeader.Trim().ToLowerInvariant()).ToHashSet();
+        IXLWorksheet? worksheet = null;
+        int maxMatchCount = 0;
+
+        foreach (var ws in workbook.Worksheets)
+        {
+            var wsHeaderRow = ws.Row(1);
+            var lastCell = wsHeaderRow.LastCellUsed();
+            if (lastCell == null) continue;
+
+            int matchCount = 0;
+            for (int i = 1; i <= lastCell.Address.ColumnNumber; i++)
+            {
+                var headerValue = wsHeaderRow.Cell(i).GetString()?.Trim().ToLowerInvariant();
+                if (!string.IsNullOrEmpty(headerValue) && expectedHeaders.Contains(headerValue))
+                {
+                    matchCount++;
+                }
+            }
+
+            if (matchCount > maxMatchCount)
+            {
+                maxMatchCount = matchCount;
+                worksheet = ws;
+            }
+        }
+
+        // Fallback nếu không tìm thấy Sheet nào khớp
+        worksheet ??= workbook.Worksheets.FirstOrDefault();
 
         if (worksheet == null)
             return result;
@@ -78,7 +108,11 @@ public class ExcelImportService : IExcelImportService
             }
         }
 
-        var rowsUsed = worksheet.RangeUsed().RowsUsed().Skip(1);
+        var rangeUsed = worksheet.RangeUsed();
+        if (rangeUsed == null)
+            return result;
+            
+        var rowsUsed = rangeUsed.RowsUsed().Skip(1);
 
         foreach (var row in rowsUsed)
         {
