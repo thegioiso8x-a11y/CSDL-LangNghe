@@ -57,4 +57,4 @@ Thumbs.db
 # ═══════════════ DATABASE ═══════════════
 *.db
 *.db-shm
-*.db-wal
+*.db-walvenv/
