@@ -19,17 +19,16 @@ public class RebuildAggJob
 
     public async Task RunAsync()
     {
-        var currentYear = DateTime.UtcNow.Year.ToString();
-        _logger.LogInformation("Bắt đầu rebuild Agg cho kỳ {Period} lúc {Time}", currentYear, DateTime.UtcNow);
+        _logger.LogInformation("Bắt đầu rebuild Agg cho TẤT CẢ các kỳ hợp lệ lúc {Time}", DateTime.UtcNow);
 
         try
         {
-            await _aggService.RebuildAllAsync(currentYear, 3, CancellationToken.None);
-            _logger.LogInformation("Hoàn tất rebuild Agg cho kỳ {Period}", currentYear);
+            await _aggService.RebuildAllPeriodsAsync(CancellationToken.None);
+            _logger.LogInformation("Hoàn tất rebuild Agg cho tất cả các kỳ hợp lệ");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi rebuild Agg cho kỳ {Period}", currentYear);
+            _logger.LogError(ex, "Lỗi rebuild Agg");
             throw;
         }
     }

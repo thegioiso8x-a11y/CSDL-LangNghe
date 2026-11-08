@@ -108,6 +108,13 @@ export interface VillageFilterDto {
   isPublished?: boolean
 }
 
+export interface VillageStatsDto {
+  totalVillages: number
+  activeVillages: number
+  pendingVillages: number
+  publishedVillages: number
+}
+
 // ========================
 // 2. PRODUCT (SẢN PHẨM)
 // ========================

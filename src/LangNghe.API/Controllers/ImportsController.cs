@@ -24,13 +24,35 @@ public class ImportsController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly IExcelImportService _excelImportService;
+    private readonly IExcelTemplateService _excelTemplateService;
 
-    public ImportsController(IMediator mediator, IExcelImportService excelImportService)
+    public ImportsController(
+        IMediator mediator,
+        IExcelImportService excelImportService,
+        IExcelTemplateService excelTemplateService)
     {
         _mediator = mediator;
         _excelImportService = excelImportService;
+        _excelTemplateService = excelTemplateService;
     }
 
+    /// <summary>
+    /// Tải file Excel mẫu (chỉ dòng header) theo template code
+    /// </summary>
+    [HttpGet("template")]
+    [Authorize(Policy = "ImportUpload")]
+    public async Task<FileContentResult> DownloadTemplate([FromQuery] string templateCode, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(templateCode))
+            throw new BusinessException("Template code không được trống");
+
+        var bytes = await _excelTemplateService.GenerateTemplateAsync(templateCode, ct);
+
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"Template_{templateCode}.xlsx");
+    }
     /// <summary>
     /// Tải lên và import dữ liệu từ file Excel
     /// </summary>

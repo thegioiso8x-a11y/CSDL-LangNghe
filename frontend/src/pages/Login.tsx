@@ -113,7 +113,7 @@ export const Login: React.FC = () => {
                     border: '1px solid #d9d9d9',
                   }}
                 >
-                  {captcha?.question ? `${captcha.question} = ?` : 'Đang tải...'}
+                  {captcha?.question ? `${captcha.question} ` : 'Đang tải...'}
                 </div>
               )}
               <Button

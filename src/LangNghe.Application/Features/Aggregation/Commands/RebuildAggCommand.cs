@@ -11,15 +11,22 @@ public record RebuildAggCommand(string Period, byte PeriodType) : IRequest<ApiRe
 public class RebuildAggCommandHandler : IRequestHandler<RebuildAggCommand, ApiResponse<bool>>
 {
     private readonly IAggRebuildService _aggRebuildService;
+    private readonly IDashboardCacheService _cacheService;
 
-    public RebuildAggCommandHandler(IAggRebuildService aggRebuildService)
+    public RebuildAggCommandHandler(IAggRebuildService aggRebuildService, IDashboardCacheService cacheService)
     {
         _aggRebuildService = aggRebuildService;
+        _cacheService = cacheService;
     }
 
     public async Task<ApiResponse<bool>> Handle(RebuildAggCommand request, CancellationToken cancellationToken)
     {
-        await _aggRebuildService.RebuildAllAsync(request.Period, request.PeriodType, cancellationToken);
+        // Rebuild cho TẤT CẢ các kỳ hợp lệ (bao gồm roll-up theo năm) thay vì chỉ kỳ hiện tại.
+        await _aggRebuildService.RebuildAllPeriodsAsync(cancellationToken);
+
+        // Xóa toàn bộ cache Dashboard để lần truy vấn kế tiếp lấy dữ liệu mới.
+        _cacheService.InvalidateAll();
+
         return ApiResponse<bool>.Ok(true, "Rebuild aggregation data successfully");
     }
 }

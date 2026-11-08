@@ -29,6 +29,17 @@ public class VillagesController : ControllerBase
         return Ok(ApiResponse<PagedResult<VillageListDto>>.Ok(result));
     }
 
+    /// <summary>
+    /// Thống kê tổng quan làng nghề (dùng cho các thẻ KPI trên trang quản lý).
+    /// Nhận cùng bộ tham số lọc như API lấy danh sách.
+    /// </summary>
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetStats([FromQuery] VillageFilterDto filter, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetVillageStatsQuery(filter), ct);
+        return Ok(result);
+    }
+
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id, CancellationToken ct)
     {
@@ -110,3 +121,4 @@ public class VillagesController : ControllerBase
 }
 
 public record GeocodeAddressRequest(string Address);
+

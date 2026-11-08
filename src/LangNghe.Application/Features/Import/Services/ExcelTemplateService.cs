@@ -7,6 +7,7 @@ using ClosedXML.Excel;
 using LangNghe.Application.Common;
 using LangNghe.Application.Features.Import.Interfaces;
 using LangNghe.Domain.Entities;
+using LangNghe.Domain.Exceptions;
 using LangNghe.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -174,4 +175,137 @@ public class ExcelTemplateService : IExcelTemplateService
 
         return headers;
     }
+
+    /// <summary>
+    /// Sinh file Excel mẫu gồm 2 sheet: "Hướng dẫn" và "Dữ liệu" cho template tương ứng.
+    /// </summary>
+    public async Task<byte[]> GenerateTemplateAsync(string templateCode, CancellationToken ct)
+    {
+        var configs = await GetTemplateConfigsAsync(templateCode, ct);
+
+        if (configs == null || configs.Count == 0)
+            throw new NotFoundException("cấu hình template", templateCode);
+
+        using var workbook = new XLWorkbook();
+
+        // ===== Sheet 1: Hướng dẫn =====
+        var guideSheet = workbook.Worksheets.Add("Hướng dẫn");
+        var titleCell = guideSheet.Cell(1, 1);
+        titleCell.Value = $"HƯỚNG DẪN IMPORT LÀNG NGHỀ — TEMPLATE {templateCode} ({configs.Count} CỘT)";
+        titleCell.Style.Font.Bold = true;
+        titleCell.Style.Font.FontSize = 14;
+
+        var guideLines = new List<string>
+        {
+            string.Empty,
+            "QUY TẮC CHUNG:",
+            "- Không thay đổi tên cột ở dòng 1 của sheet \"Dữ liệu\".",
+            "- Không để trống các cột bắt buộc (nền hồng nhạt ở sheet \"Dữ liệu\").",
+            "- Mỗi dòng dữ liệu tương ứng với một làng nghề.",
+            "- File hỗ trợ định dạng .xlsx, dung lượng tối đa 20MB.",
+            string.Empty,
+            "QUY TẮC DỮ LIỆU:",
+            "- RegionId, ClassificationId, VillageTypeId, IndustryGroupId phải là ID nội bộ (số nguyên), KHÔNG phải mã dạng chuỗi.",
+            "- Ngày công nhận định dạng YYYY-MM-DD (ví dụ: 2020-01-15).",
+            "- Cột kiểu bool nhập TRUE/FALSE hoặc 1/0.",
+            "- Cột kiểu số nhập số nguyên hoặc số thực, không kèm đơn vị.",
+            string.Empty,
+            "DANH SÁCH CỘT:",
+        };
+
+        // Liệt kê chi tiết từng cột
+        foreach (var config in configs)
+        {
+            var required = config.IsRequired ? "[Bắt buộc]" : "[Tùy chọn]";
+            var line = $"- {config.ExcelColumnHeader} ({config.FieldName}) — {config.DataType} {required}";
+            if (!string.IsNullOrWhiteSpace(config.Description))
+                line += $" — {config.Description}";
+            guideLines.Add(line);
+        }
+
+        for (int i = 0; i < guideLines.Count; i++)
+        {
+            guideSheet.Cell(i + 2, 1).Value = guideLines[i];
+        }
+        guideSheet.Columns().AdjustToContents();
+        // Cột A rộng cố định để dễ đọc nội dung hướng dẫn
+        guideSheet.Column(1).Width = 80;
+
+        // ===== Sheet 2: Dữ liệu =====
+        var dataSheet = workbook.Worksheets.Add("Dữ liệu");
+
+        // Dòng 1: header
+        for (int i = 0; i < configs.Count; i++)
+        {
+            var config = configs[i];
+            var cell = dataSheet.Cell(1, i + 1);
+            cell.Value = config.ExcelColumnHeader;
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            cell.Style.Fill.BackgroundColor = config.IsRequired ? XLColor.LightPink : XLColor.White;
+        }
+
+        dataSheet.Row(1).Height = 20;
+        dataSheet.SheetView.FreezeRows(1);
+
+        // 2 dòng dữ liệu mẫu (dòng 2 và 3)
+        for (int row = 2; row <= 3; row++)
+        {
+            for (int i = 0; i < configs.Count; i++)
+            {
+                var config = configs[i];
+                var cell = dataSheet.Cell(row, i + 1);
+                cell.Value = BuildSampleValue(config, row);
+            }
+        }
+
+        dataSheet.Columns().AdjustToContents();
+
+        using var memoryStream = new MemoryStream();
+        workbook.SaveAs(memoryStream);
+        return memoryStream.ToArray();
+    }
+
+    /// <summary>
+    /// Sinh giá trị mẫu cho một ô dựa trên kiểu dữ liệu của cột.
+    /// </summary>
+    private static XLCellValue BuildSampleValue(ImportTemplateConfig config, int row)
+    {
+        var dataType = (config.DataType ?? string.Empty).Trim().ToLowerInvariant();
+        var fieldName = (config.FieldName ?? string.Empty).Trim().ToLowerInvariant();
+
+        // Cột ID số nguyên (RegionId, ClassificationId, VillageTypeId, IndustryGroupId...)
+        if (dataType is "int" or "integer" or "long" or "int32" or "int64")
+        {
+            if (fieldName.Contains("region"))
+                return 35;
+            if (fieldName.Contains("classification"))
+                return 1;
+            if (fieldName.Contains("villagetype"))
+                return 8;
+            if (fieldName.Contains("industrygroup"))
+                return 1;
+            return row == 2 ? 1 : 2;
+        }
+
+        if (dataType is "bool" or "boolean")
+            return false;
+
+        if (dataType is "datetime" or "date")
+            return "2020-01-15";
+
+        if (dataType is "decimal" or "double" or "float" or "number")
+            return 0;
+
+        // string mặc định
+        if (fieldName.Contains("code"))
+            return row == 2 ? "LN001" : "LN002";
+        if (fieldName.Contains("name"))
+            return row == 2 ? "Làng nghề mẫu 1" : "Làng nghề mẫu 2";
+        if (fieldName.Contains("address"))
+            return "Xã mẫu, Tỉnh mẫu";
+
+        return string.Empty;
+    }
 }
+

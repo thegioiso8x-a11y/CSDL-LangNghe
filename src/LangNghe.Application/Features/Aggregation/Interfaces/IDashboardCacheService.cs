@@ -10,4 +10,9 @@ public interface IDashboardCacheService
     Task<DashboardMetricsDto?> GetAsync(string period, byte periodType, int regionId, CancellationToken ct);
     Task SetAsync(string period, byte periodType, int regionId, DashboardMetricsDto data, CancellationToken ct);
     void Invalidate(string period, byte periodType, int regionId);
+
+    /// <summary>
+    /// Xóa toàn bộ cache Dashboard (dùng sau khi rebuild dữ liệu tổng hợp).
+    /// </summary>
+    void InvalidateAll();
 }

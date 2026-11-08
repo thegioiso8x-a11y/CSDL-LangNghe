@@ -11,6 +11,10 @@ public class DashboardCacheService : IDashboardCacheService
 {
     private readonly IMemoryCache _cache;
 
+    // Generation token: khi InvalidateAll() được gọi, token bị cancel và tạo mới,
+    // khiến toàn bộ entry cũ (gắn token cũ) tự động hết hạn.
+    private CancellationTokenSource _generation = new();
+
     public DashboardCacheService(IMemoryCache cache)
     {
         _cache = cache;
@@ -33,6 +37,8 @@ public class DashboardCacheService : IDashboardCacheService
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10)
         };
+        // Gắn generation token hiện tại: khi InvalidateAll() cancel token, entry này bị loại bỏ.
+        options.AddExpirationToken(new Microsoft.Extensions.Primitives.CancellationChangeToken(_generation.Token));
         _cache.Set(key, data, options);
         return Task.CompletedTask;
     }
@@ -41,5 +47,14 @@ public class DashboardCacheService : IDashboardCacheService
     {
         var key = GetCacheKey(period, periodType, regionId);
         _cache.Remove(key);
+    }
+
+    public void InvalidateAll()
+    {
+        // Cancel generation cũ (mọi entry gắn token cũ sẽ hết hạn) và tạo generation mới.
+        var old = _generation;
+        _generation = new CancellationTokenSource();
+        old.Cancel();
+        old.Dispose();
     }
 }

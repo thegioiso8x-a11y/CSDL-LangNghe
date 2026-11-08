@@ -1,9 +1,10 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ProtectedRoute } from './components/layout/ProtectedRoute'
 import { MainLayout } from './components/layout/MainLayout'
 import PageLoading from './components/common/PageLoading'
 
+const Landing = lazy(() => import('./pages/landing/Landing'))
 const Login = lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })))
 const Dashboard = lazy(() => import('./pages/Dashboard').then((module) => ({ default: module.Dashboard })))
 const Profile = lazy(() => import('./pages/Profile').then((module) => ({ default: module.Profile })))
@@ -44,8 +45,11 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Route công khai — Landing page */}
+        <Route path="/" element={<LazyPage><Landing /></LazyPage>} />
         <Route path="/login" element={<LazyPage><Login /></LazyPage>} />
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+        {/* Khu vực được bảo vệ */}
         <Route
           path="/"
           element={

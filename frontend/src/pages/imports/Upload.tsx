@@ -1,9 +1,9 @@
 import React, { useState } from 'react'
-import { Alert, Form, Modal, Select, Upload, message } from 'antd'
+import { Alert, Button, Col, Form, Modal, Row, Select, Space, Upload, message } from 'antd'
 import type { UploadFile } from 'antd'
-import { InboxOutlined } from '@ant-design/icons'
+import { DownloadOutlined, InboxOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { uploadImport } from '../../api/imports'
+import { downloadImportTemplate, uploadImport } from '../../api/imports'
 import type { ImportResultDto } from '../../types/entities'
 import { getApiErrorMessage } from '../../hooks/useApiError'
 
@@ -30,6 +30,7 @@ export const ImportUpload: React.FC<ImportUploadProps> = ({ open, onClose }) => 
   const [form] = Form.useForm<UploadFormValues>()
   const [fileList, setFileList] = useState<UploadFile[]>([])
   const [result, setResult] = useState<ImportResultDto | null>(null)
+  const [downloading, setDownloading] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const uploadMutation = useMutation({
@@ -62,6 +63,29 @@ export const ImportUpload: React.FC<ImportUploadProps> = ({ open, onClose }) => 
     uploadMutation.mutate(values)
   }
 
+  const handleImport = () => {
+    form.submit()
+  }
+
+  const handleDownloadTemplate = async (templateCode: string) => {
+    setDownloading(templateCode)
+    try {
+      const response = await downloadImportTemplate(templateCode)
+      const url = URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Template_${templateCode}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch {
+      message.error('Template này chưa được cấu hình trong hệ thống CSDL. Vui lòng liên hệ Admin!')
+    } finally {
+      setDownloading(null)
+    }
+  }
+
   const errorRate = result && result.totalRows > 0 ? result.errorRows / result.totalRows : 0
 
   return (
@@ -69,11 +93,12 @@ export const ImportUpload: React.FC<ImportUploadProps> = ({ open, onClose }) => 
       title="Upload file Excel"
       open={open}
       onCancel={handleClose}
-      onOk={() => form.submit()}
-      okText="Import"
-      cancelText="Đóng"
-      confirmLoading={uploadMutation.isPending}
+      width={700}
       destroyOnClose
+      footer={[
+        <Button key="cancel" onClick={handleClose}>Đóng</Button>,
+        <Button key="submit" type="primary" onClick={handleImport} loading={uploadMutation.isPending}>Import</Button>,
+      ]}
     >
       <Form
         form={form}
@@ -81,6 +106,8 @@ export const ImportUpload: React.FC<ImportUploadProps> = ({ open, onClose }) => 
         initialValues={{ templateCode: 'V1_MINIMAL', importMode: 'MERGE' }}
         onFinish={handleSubmit}
       >
+        <Row gutter={16}>
+          <Col span={12}>
         <Form.Item label="Template" name="templateCode" rules={[{ required: true, message: 'Chọn template' }]}> 
           <Select options={[
             { label: 'V1_FULL — 47 cột', value: 'V1_FULL' },
@@ -88,15 +115,30 @@ export const ImportUpload: React.FC<ImportUploadProps> = ({ open, onClose }) => 
             { label: 'MONTHLY — Cập nhật tháng', value: 'MONTHLY' },
           ]} />
         </Form.Item>
-        <Form.Item label="Chế độ import" name="importMode" rules={[{ required: true, message: 'Chọn chế độ import' }]}> 
+          </Col>
+          <Col span={12}>
+        <Form.Item label="Chế độ import" name="importMode" rules={[{ required: true, message: 'Chọn chế độ import' }]}>
           <Select options={Object.entries(MODE_DESCRIPTIONS).map(([value, description]) => ({ label: value, value, description }))} />
         </Form.Item>
+          </Col>
+        </Row>
+
+        <div style={{ background: '#fafafa', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+          <div style={{ marginBottom: 8 }}>Hoặc tải file Excel mẫu trống để điền:</div>
+          <Space wrap>
+            <Button icon={<DownloadOutlined />} onClick={() => handleDownloadTemplate('V1_FULL')} loading={downloading === 'V1_FULL'}>Tải mẫu V1_FULL (47 cột)</Button>
+            <Button icon={<DownloadOutlined />} onClick={() => handleDownloadTemplate('V1_MINIMAL')} loading={downloading === 'V1_MINIMAL'}>Tải mẫu V1_MINIMAL</Button>
+            <Button icon={<DownloadOutlined />} onClick={() => handleDownloadTemplate('MONTHLY')} loading={downloading === 'MONTHLY'}>Tải mẫu MONTHLY</Button>
+          </Space>
+        </div>
+
         <Form.Item noStyle shouldUpdate={(previous, current) => previous.importMode !== current.importMode}>
           {({ getFieldValue }) => {
             const mode = getFieldValue('importMode') as string | undefined
             return mode ? <Alert type="info" showIcon message={MODE_DESCRIPTIONS[mode]} style={{ marginBottom: 16 }} /> : null
           }}
         </Form.Item>
+
         <Dragger
           accept=".xlsx,.xls"
           maxCount={1}
@@ -115,6 +157,7 @@ export const ImportUpload: React.FC<ImportUploadProps> = ({ open, onClose }) => 
           <p className="ant-upload-text">Kéo thả hoặc bấm để chọn file Excel</p>
           <p className="ant-upload-hint">Chỉ nhận .xlsx/.xls, tối đa 20MB</p>
         </Dragger>
+
         <Form.Item noStyle shouldUpdate>
           {() => fileList.length === 0 ? <Alert type="warning" showIcon message="Vui lòng chọn file trước khi import" style={{ marginTop: 16 }} /> : null}
         </Form.Item>
@@ -131,3 +174,4 @@ export const ImportUpload: React.FC<ImportUploadProps> = ({ open, onClose }) => 
     </Modal>
   )
 }
+

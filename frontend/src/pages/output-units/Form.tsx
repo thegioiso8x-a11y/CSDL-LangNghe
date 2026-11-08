@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Modal, Form, Input, InputNumber, Switch } from 'antd'
 import type {
   OutputUnitDto,
@@ -24,24 +24,17 @@ export const OutputUnitForm: React.FC<OutputUnitFormProps> = ({
   const [form] = Form.useForm()
   const isEdit = Boolean(initialData)
 
-  useEffect(() => {
-    if (open) {
-      if (initialData) {
-        form.setFieldsValue({
-          code: initialData.code,
-          name: initialData.name,
-          sortOrder: initialData.sortOrder ?? 0,
-          isActive: initialData.isActive ?? true,
-        })
-      } else {
-        form.resetFields()
-        form.setFieldsValue({
-          sortOrder: 0,
-          isActive: true,
-        })
+  const formInitialValues = initialData
+    ? {
+        code: initialData.code,
+        name: initialData.name,
+        sortOrder: initialData.sortOrder ?? 0,
+        isActive: initialData.isActive ?? true,
       }
-    }
-  }, [open, initialData, form])
+    : {
+        sortOrder: 0,
+        isActive: true,
+      }
 
   const handleOk = async () => {
     try {
@@ -64,7 +57,13 @@ export const OutputUnitForm: React.FC<OutputUnitFormProps> = ({
       okText={isEdit ? 'Lưu thay đổi' : 'Thêm mới'}
       cancelText="Hủy"
     >
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form
+        form={form}
+        layout="vertical"
+        preserve={false}
+        initialValues={formInitialValues}
+        key={initialData?.id || 'create'}
+      >
         <Form.Item
           name="code"
           label="Mã đơn vị tính"

@@ -58,3 +58,16 @@ Thumbs.db
 *.db
 *.db-shm
 *.db-walvenv/
+
+# Python venv
+venv/
+.venv/
+__pycache__/
+
+# Media & Uploads
+media/
+
+# File rác hệ thống (nếu chưa có)
+.DS_Store
+Thumbs.db
+*.tmp

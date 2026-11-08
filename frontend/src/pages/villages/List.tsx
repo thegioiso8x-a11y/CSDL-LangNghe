@@ -12,6 +12,9 @@ import {
   Spin,
   Popconfirm,
   Badge,
+  Row,
+  Col,
+  Statistic,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -21,6 +24,9 @@ import {
   EyeOutlined,
   CheckCircleOutlined,
   StopOutlined,
+  BankOutlined,
+  ClockCircleOutlined,
+  SafetyCertificateOutlined,
 } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -33,6 +39,7 @@ import {
   deleteVillage,
   publishVillage,
   getVillageById,
+  getVillageStats,
 } from '../../api/villages'
 import {
   getRegionTree,
@@ -67,6 +74,13 @@ export const VillageList: React.FC = () => {
 
   // 1. Dữ liệu danh sách làng nghề
   const { data, isLoading } = useList('villages', getVillages, filter)
+
+  // 1b. Thống kê tổng quan cho các thẻ KPI (thay đổi linh hoạt theo bộ lọc hiện tại)
+  const { data: statsData } = useQuery({
+    queryKey: ['village-stats', filter],
+    queryFn: () => getVillageStats(filter),
+  })
+  const stats = statsData?.data
 
   // 2. Dữ liệu danh mục để filter
   const { data: treeData } = useQuery({
@@ -405,6 +419,50 @@ export const VillageList: React.FC = () => {
           />
         </div>
       </Card>
+
+      {/* Thẻ thống kê KPI */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="Tổng số làng nghề"
+              value={stats?.totalVillages ?? 0}
+              prefix={<BankOutlined style={{ color: '#1677ff' }} />}
+              valueStyle={{ color: '#1677ff' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="Đang hoạt động"
+              value={stats?.activeVillages ?? 0}
+              prefix={<CheckCircleOutlined style={{ color: '#52c41a' }} />}
+              valueStyle={{ color: '#52c41a' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="Chờ duyệt / Nháp"
+              value={stats?.pendingVillages ?? 0}
+              prefix={<ClockCircleOutlined style={{ color: '#faad14' }} />}
+              valueStyle={{ color: '#faad14' }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="Đã công bố"
+              value={stats?.publishedVillages ?? 0}
+              prefix={<SafetyCertificateOutlined style={{ color: '#722ed1' }} />}
+              valueStyle={{ color: '#722ed1' }}
+            />
+          </Card>
+        </Col>
+      </Row>
 
       <Card>
         <DataTable<VillageListDto>

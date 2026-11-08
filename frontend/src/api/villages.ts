@@ -7,12 +7,20 @@ import type {
   UpdateVillageDto,
   VillageFilterDto,
   VillageGeoDto,
+  VillageStatsDto,
 } from '../types/entities'
 
 export const getVillages = async (
   params: VillageFilterDto
 ): Promise<ApiResponse<PagedResult<VillageListDto>>> => {
   const res = await apiClient.get<ApiResponse<PagedResult<VillageListDto>>>('/villages', { params })
+  return res.data
+}
+
+export const getVillageStats = async (
+  params?: VillageFilterDto
+): Promise<ApiResponse<VillageStatsDto>> => {
+  const res = await apiClient.get<ApiResponse<VillageStatsDto>>('/villages/stats', { params })
   return res.data
 }
 
@@ -87,3 +95,4 @@ export const publishVillage = async ({
   })
   return res.data
 }
+

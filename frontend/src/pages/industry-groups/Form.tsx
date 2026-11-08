@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Modal, Form, Input, InputNumber, Switch } from 'antd'
 import type {
   IndustryGroupDto,
@@ -26,25 +26,18 @@ export const IndustryGroupForm: React.FC<IndustryGroupFormProps> = ({
   const [form] = Form.useForm()
   const isEdit = Boolean(initialData)
 
-  useEffect(() => {
-    if (open) {
-      if (initialData) {
-        form.setFieldsValue({
-          code: initialData.code,
-          name: initialData.name,
-          description: initialData.description ?? '',
-          sortOrder: initialData.sortOrder ?? 0,
-          isActive: initialData.isActive ?? true,
-        })
-      } else {
-        form.resetFields()
-        form.setFieldsValue({
-          sortOrder: 0,
-          isActive: true,
-        })
+  const formInitialValues = initialData
+    ? {
+        code: initialData.code,
+        name: initialData.name,
+        description: initialData.description ?? '',
+        sortOrder: initialData.sortOrder ?? 0,
+        isActive: initialData.isActive ?? true,
       }
-    }
-  }, [open, initialData, form])
+    : {
+        sortOrder: 0,
+        isActive: true,
+      }
 
   const handleOk = async () => {
     try {
@@ -67,7 +60,13 @@ export const IndustryGroupForm: React.FC<IndustryGroupFormProps> = ({
       okText={isEdit ? 'Lưu thay đổi' : 'Thêm mới'}
       cancelText="Hủy"
     >
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form
+        form={form}
+        layout="vertical"
+        preserve={false}
+        initialValues={formInitialValues}
+        key={initialData?.id || 'create'}
+      >
         <Form.Item
           name="code"
           label="Mã nhóm ngành nghề"

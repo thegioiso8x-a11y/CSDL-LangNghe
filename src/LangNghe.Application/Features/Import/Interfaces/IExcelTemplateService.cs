@@ -14,4 +14,10 @@ public interface IExcelTemplateService
     Task<List<ImportTemplateConfig>> GetTemplateConfigsAsync(string templateCode, CancellationToken ct);
     Task<string> DetectTemplateAsync(Stream stream, CancellationToken ct);
     Task<bool> ValidateHeadersAsync(Stream stream, string templateCode, CancellationToken ct);
+
+    /// <summary>
+    /// Sinh file Excel mẫu (chỉ dòng header) cho template tương ứng.
+    /// </summary>
+    Task<byte[]> GenerateTemplateAsync(string templateCode, CancellationToken ct);
 }
+

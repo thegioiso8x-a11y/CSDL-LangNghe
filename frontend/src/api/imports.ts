@@ -40,3 +40,8 @@ export const rollbackImport = async (batchId: string): Promise<ApiResponse<boole
   const response = await apiClient.post<ApiResponse<boolean>>(`/imports/${batchId}/rollback`)
   return response.data
 }
+
+export const downloadImportTemplate = (templateCode: string) => {
+  return apiClient.get('/imports/template', { params: { templateCode }, responseType: 'blob' })
+}
+

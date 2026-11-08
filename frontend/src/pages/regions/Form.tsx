@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Modal, Form, Input, InputNumber, Switch, Select } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { getRegionTree } from '../../api/categories'
@@ -35,29 +35,22 @@ export const RegionForm: React.FC<RegionFormProps> = ({
 
   const levelTypeValue = Form.useWatch('levelType', form)
 
-  useEffect(() => {
-    if (open) {
-      if (initialData) {
-        form.setFieldsValue({
-          regionCode: initialData.regionCode,
-          name: initialData.name,
-          shortName: initialData.shortName ?? '',
-          levelType: initialData.levelType ?? 1,
-          regionType: initialData.regionType ?? undefined,
-          parentId: initialData.parentId ?? undefined,
-          sortOrder: initialData.sortOrder ?? 0,
-          isActive: initialData.isActive ?? true,
-        })
-      } else {
-        form.resetFields()
-        form.setFieldsValue({
-          levelType: 1,
-          sortOrder: 0,
-          isActive: true,
-        })
+  const formInitialValues = initialData
+    ? {
+        regionCode: initialData.regionCode,
+        name: initialData.name,
+        shortName: initialData.shortName ?? '',
+        levelType: initialData.levelType ?? 1,
+        regionType: initialData.regionType ?? undefined,
+        parentId: initialData.parentId ?? undefined,
+        sortOrder: initialData.sortOrder ?? 0,
+        isActive: initialData.isActive ?? true,
       }
-    }
-  }, [open, initialData, form])
+    : {
+        levelType: 1,
+        sortOrder: 0,
+        isActive: true,
+      }
 
   const handleOk = async () => {
     try {
@@ -86,7 +79,13 @@ export const RegionForm: React.FC<RegionFormProps> = ({
       okText={isEdit ? 'Lưu thay đổi' : 'Thêm mới'}
       cancelText="Hủy"
     >
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form
+        form={form}
+        layout="vertical"
+        preserve={false}
+        initialValues={formInitialValues}
+        key={initialData?.id || 'create'}
+      >
         <Form.Item
           name="levelType"
           label="Cấp hành chính"

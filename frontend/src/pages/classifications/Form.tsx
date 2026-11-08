@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { Modal, Form, Input, InputNumber } from 'antd'
 import type {
   ClassificationDto,
@@ -24,22 +24,15 @@ export const ClassificationForm: React.FC<ClassificationFormProps> = ({
   const [form] = Form.useForm()
   const isEdit = Boolean(initialData)
 
-  useEffect(() => {
-    if (open) {
-      if (initialData) {
-        form.setFieldsValue({
-          code: initialData.code,
-          name: initialData.name,
-          sortOrder: initialData.sortOrder ?? 0,
-        })
-      } else {
-        form.resetFields()
-        form.setFieldsValue({
-          sortOrder: 0,
-        })
+  const formInitialValues = initialData
+    ? {
+        code: initialData.code,
+        name: initialData.name,
+        sortOrder: initialData.sortOrder ?? 0,
       }
-    }
-  }, [open, initialData, form])
+    : {
+        sortOrder: 0,
+      }
 
   const handleOk = async () => {
     try {
@@ -62,7 +55,13 @@ export const ClassificationForm: React.FC<ClassificationFormProps> = ({
       okText={isEdit ? 'Lưu thay đổi' : 'Thêm mới'}
       cancelText="Hủy"
     >
-      <Form form={form} layout="vertical" preserve={false}>
+      <Form
+        form={form}
+        layout="vertical"
+        preserve={false}
+        initialValues={formInitialValues}
+        key={initialData?.id || 'create'}
+      >
         <Form.Item
           name="code"
           label="Mã phân loại"

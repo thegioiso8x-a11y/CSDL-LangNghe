@@ -114,9 +114,14 @@ public class GetDashboardMetricsQueryHandler : IRequestHandler<GetDashboardMetri
         }
 
         // Overall
-        var overall = await _context.VillageTimeSeries
+        // Ưu tiên khớp PeriodType người dùng gửi; nếu không có dữ liệu thì fallback lấy bất kỳ
+        // PeriodType nào của kỳ đó (dữ liệu Agg đã được tổng hợp theo năm, tránh lệch quy ước enum).
+        var overallQuery = _context.VillageTimeSeries
             .AsNoTracking()
-            .Where(x => x.Period == request.Period && x.PeriodType == request.PeriodType && x.RegionId == request.RegionId)
+            .Where(x => x.Period == request.Period && x.RegionId == request.RegionId);
+
+        var overall = await overallQuery
+            .Where(x => x.PeriodType == request.PeriodType)
             .Select(x => new VillageTimeSeriesDto
             {
                 RegionId = x.RegionId,
@@ -147,11 +152,50 @@ public class GetDashboardMetricsQueryHandler : IRequestHandler<GetDashboardMetri
             })
             .FirstOrDefaultAsync(cancellationToken);
 
-        // Industry Groups
-        var byIndustry = await _context.IndustryGroupAggregates
+        // Fallback: nếu không có bản ghi đúng PeriodType, lấy bản ghi bất kỳ của kỳ đó
+        if (overall == null)
+        {
+            overall = await overallQuery
+                .OrderBy(x => x.PeriodType)
+                .Select(x => new VillageTimeSeriesDto
+                {
+                    RegionId = x.RegionId,
+                    RegionLevel = x.RegionLevel,
+                    Period = x.Period,
+                    PeriodType = x.PeriodType,
+                    TotalVillages = x.TotalVillages,
+                    TraditionalVillages = x.TraditionalVillages,
+                    NewVillages = x.NewVillages,
+                    RestoredVillages = x.RestoredVillages,
+                    OcopVillages = x.OcopVillages,
+                    EffectiveVillages = x.EffectiveVillages,
+                    TotalHouseholds = x.TotalHouseholds,
+                    TotalEnterprises = x.TotalEnterprises,
+                    TotalLabor = x.TotalLabor,
+                    TrainedLabor = x.TrainedLabor,
+                    TotalArtisans = x.TotalArtisans,
+                    TotalArea = x.TotalArea,
+                    TotalRevenue = x.TotalRevenue,
+                    TotalExportValue = x.TotalExportValue,
+                    AvgRevenuePerVillage = x.AvgRevenuePerVillage,
+                    AvgIncome = x.AvgIncome,
+                    AvgGrowthRate = x.AvgGrowthRate,
+                    DigitalizedVillages = x.DigitalizedVillages,
+                    EnvCompliantVillages = x.EnvCompliantVillages,
+                    TourismVillages = x.TourismVillages,
+                    TotalVisitors = x.TotalVisitors
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        // Industry Groups — ưu tiên PeriodType người dùng gửi, fallback nếu rỗng
+        var byIndustryQuery = _context.IndustryGroupAggregates
             .AsNoTracking()
             .Include(x => x.IndustryGroup)
-            .Where(x => x.Period == request.Period && x.PeriodType == request.PeriodType && x.RegionId == request.RegionId)
+            .Where(x => x.Period == request.Period && x.RegionId == request.RegionId);
+
+        var byIndustry = await byIndustryQuery
+            .Where(x => x.PeriodType == request.PeriodType)
             .Select(x => new IndustryGroupMetricDto
             {
                 IndustryGroupId = x.IndustryGroupId,
@@ -163,11 +207,39 @@ public class GetDashboardMetricsQueryHandler : IRequestHandler<GetDashboardMetri
             })
             .ToListAsync(cancellationToken);
 
-        // Village Types
-        var byType = await _context.VillageTypeAggregates
+        if (byIndustry.Count == 0)
+        {
+            // Fallback: lấy theo PeriodType nhỏ nhất đang có của kỳ (dữ liệu đã tổng hợp theo năm)
+            var fallbackPeriodType = await byIndustryQuery
+                .Select(x => (byte?)x.PeriodType)
+                .OrderBy(x => x)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (fallbackPeriodType.HasValue)
+            {
+                byIndustry = await byIndustryQuery
+                    .Where(x => x.PeriodType == fallbackPeriodType.Value)
+                    .Select(x => new IndustryGroupMetricDto
+                    {
+                        IndustryGroupId = x.IndustryGroupId,
+                        IndustryGroupName = x.IndustryGroup != null ? x.IndustryGroup.Name : string.Empty,
+                        TotalVillages = x.TotalVillages,
+                        TotalRevenue = x.TotalRevenue,
+                        TotalLabor = x.TotalLabor,
+                        TotalExportValue = x.TotalExportValue
+                    })
+                    .ToListAsync(cancellationToken);
+            }
+        }
+
+        // Village Types — ưu tiên PeriodType người dùng gửi, fallback nếu rỗng
+        var byTypeQuery = _context.VillageTypeAggregates
             .AsNoTracking()
             .Include(x => x.VillageType)
-            .Where(x => x.Period == request.Period && x.PeriodType == request.PeriodType && x.RegionId == request.RegionId)
+            .Where(x => x.Period == request.Period && x.RegionId == request.RegionId);
+
+        var byType = await byTypeQuery
+            .Where(x => x.PeriodType == request.PeriodType)
             .Select(x => new VillageTypeMetricDto
             {
                 VillageTypeId = x.VillageTypeId,
@@ -178,6 +250,29 @@ public class GetDashboardMetricsQueryHandler : IRequestHandler<GetDashboardMetri
             })
             .ToListAsync(cancellationToken);
 
+        if (byType.Count == 0)
+        {
+            var fallbackPeriodType = await byTypeQuery
+                .Select(x => (byte?)x.PeriodType)
+                .OrderBy(x => x)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (fallbackPeriodType.HasValue)
+            {
+                byType = await byTypeQuery
+                    .Where(x => x.PeriodType == fallbackPeriodType.Value)
+                    .Select(x => new VillageTypeMetricDto
+                    {
+                        VillageTypeId = x.VillageTypeId,
+                        VillageTypeName = x.VillageType != null ? x.VillageType.Name : string.Empty,
+                        TotalVillages = x.TotalVillages,
+                        TotalRevenue = x.TotalRevenue,
+                        TotalLabor = x.TotalLabor
+                    })
+                    .ToListAsync(cancellationToken);
+            }
+        }
+
         var result = new DashboardMetricsDto
         {
             Overall = overall,
@@ -185,7 +280,11 @@ public class GetDashboardMetricsQueryHandler : IRequestHandler<GetDashboardMetri
             ByVillageType = byType
         };
 
-        await _cacheService.SetAsync(request.Period, request.PeriodType, request.RegionId, result, cancellationToken);
+        // CHỈ LƯU CACHE KHI CÓ DỮ LIỆU
+        if (result.Overall != null || result.ByIndustryGroup.Any() || result.ByVillageType.Any())
+        {
+            await _cacheService.SetAsync(request.Period, request.PeriodType, request.RegionId, result, cancellationToken);
+        }
 
         return ApiResponse<DashboardMetricsDto>.Ok(result);
     }

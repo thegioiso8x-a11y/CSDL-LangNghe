@@ -9,4 +9,9 @@ public interface IAggRebuildService
     Task RebuildIndustryGroupsAsync(string period, byte periodType, CancellationToken ct);
     Task RebuildVillageTypesAsync(string period, byte periodType, CancellationToken ct);
     Task RebuildAllAsync(string period, byte periodType, CancellationToken ct);
+
+    /// <summary>
+    /// Rebuild toàn bộ các kỳ báo cáo hợp lệ (IsEffective = 1) có trong Fact_Village_PeriodicMetrics.
+    /// </summary>
+    Task RebuildAllPeriodsAsync(CancellationToken ct);
 }
