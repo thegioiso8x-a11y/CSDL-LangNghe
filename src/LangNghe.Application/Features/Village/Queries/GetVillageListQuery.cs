@@ -11,16 +11,19 @@ public record GetVillageListQuery(VillageFilterDto Dto) : IRequest<PagedResult<V
 public class GetVillageListQueryHandler : IRequestHandler<GetVillageListQuery, PagedResult<VillageListDto>>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetVillageListQueryHandler(ILangNgheDbContext context)
+    public GetVillageListQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PagedResult<VillageListDto>> Handle(GetVillageListQuery request, CancellationToken cancellationToken)
     {
         var filter = request.Dto;
-        var query = _context.CraftVillages.AsNoTracking().AsQueryable();
+        var query = _context.CraftVillages.AsNoTracking().AsQueryable()
+            .ApplyDataScopeFilter(_currentUserService);
 
         if (!string.IsNullOrWhiteSpace(filter.Keyword))
         {

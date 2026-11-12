@@ -7,13 +7,8 @@ namespace LangNghe.Infrastructure.Persistence;
 
 public class LangNgheDbContext : DbContext, ILangNgheDbContext
 {
-    private readonly ICurrentUserService _currentUserService;
-
-    public LangNgheDbContext(
-        DbContextOptions<LangNgheDbContext> options,
-        ICurrentUserService currentUserService) : base(options)
+    public LangNgheDbContext(DbContextOptions<LangNgheDbContext> options) : base(options)
     {
-        _currentUserService = currentUserService;
     }
 
     // Dimension
@@ -64,37 +59,8 @@ public class LangNgheDbContext : DbContext, ILangNgheDbContext
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
 
-        // Global Query Filters (DataScope rules for Region ownership & Soft Delete)
-        var dataScope = _currentUserService.DataScope;
-        var userRegionId = _currentUserService.RegionId;
-
-        // CraftVillage Filter
-        builder.Entity<CraftVillage>().HasQueryFilter(x =>
-            dataScope == null                                          // seed/job không filter
-         || dataScope == 1                                             // TW thấy hết
-         || (dataScope == 2 && x.Region!.ParentId == userRegionId)     // Tỉnh: các Xã thuộc tỉnh mình
-         || (dataScope == 3 && x.RegionId == userRegionId));           // Xã: chỉ làng nghề của xã mình
-
-        // Product Filter — lọc qua quan hệ với CraftVillage để cô lập dữ liệu theo địa bàn
-        builder.Entity<Product>().HasQueryFilter(x =>
-            dataScope == null
-         || dataScope == 1
-         || (dataScope == 2 && x.CraftVillage!.Region!.ParentId == userRegionId)
-         || (dataScope == 3 && x.CraftVillage!.RegionId == userRegionId));
-
-        // Artisan Filter — lọc qua quan hệ với CraftVillage
-        builder.Entity<Artisan>().HasQueryFilter(x =>
-            dataScope == null
-         || dataScope == 1
-         || (dataScope == 2 && x.CraftVillage!.Region!.ParentId == userRegionId)
-         || (dataScope == 3 && x.CraftVillage!.RegionId == userRegionId));
-
-        // VillagePeriodicMetric Filter — lọc qua quan hệ với CraftVillage
-        builder.Entity<VillagePeriodicMetric>().HasQueryFilter(x =>
-            dataScope == null
-         || dataScope == 1
-         || (dataScope == 2 && x.CraftVillage!.Region!.ParentId == userRegionId)
-         || (dataScope == 3 && x.CraftVillage!.RegionId == userRegionId));
+        // Lưu ý: KHÔNG dùng Global Query Filter cho DataScope nữa (bị cache trong OnModelCreating).
+        // DataScope được áp dụng tường minh qua QueryableExtensions.ApplyDataScopeFilter(...) trong các Query Handler.
 
         // Region Filter (Soft delete)
         builder.Entity<Region>().HasQueryFilter(x => x.IsActive);

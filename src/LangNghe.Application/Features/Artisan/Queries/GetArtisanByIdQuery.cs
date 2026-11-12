@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using LangNghe.Application.Common;
 using LangNghe.Application.Features.Artisan.Dtos;
 using LangNghe.Domain.Exceptions;
 using LangNghe.Domain.Interfaces;
@@ -13,10 +14,12 @@ public record GetArtisanByIdQuery(int Id) : IRequest<ArtisanDto>;
 public class GetArtisanByIdQueryHandler : IRequestHandler<GetArtisanByIdQuery, ArtisanDto>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetArtisanByIdQueryHandler(ILangNgheDbContext context)
+    public GetArtisanByIdQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ArtisanDto> Handle(GetArtisanByIdQuery request, CancellationToken cancellationToken)
@@ -24,6 +27,7 @@ public class GetArtisanByIdQueryHandler : IRequestHandler<GetArtisanByIdQuery, A
         var artisan = await _context.Artisans
             .AsNoTracking()
             .Include(x => x.CraftVillage)
+            .ApplyDataScopeFilter(_currentUserService)
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (artisan == null)

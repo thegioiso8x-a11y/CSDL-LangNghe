@@ -14,10 +14,12 @@ public record GetMetricListQuery(MetricFilterDto Dto) : IRequest<PagedResult<Met
 public class GetMetricListQueryHandler : IRequestHandler<GetMetricListQuery, PagedResult<MetricListDto>>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMetricListQueryHandler(ILangNgheDbContext context)
+    public GetMetricListQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PagedResult<MetricListDto>> Handle(GetMetricListQuery request, CancellationToken cancellationToken)
@@ -27,7 +29,8 @@ public class GetMetricListQueryHandler : IRequestHandler<GetMetricListQuery, Pag
             .Include(x => x.CraftVillage)
             .Include(x => x.Commune)
             .Include(x => x.Province)
-            .AsQueryable();
+            .AsQueryable()
+            .ApplyDataScopeFilter(_currentUserService);
 
         if (request.Dto.CraftVillageId.HasValue)
         {

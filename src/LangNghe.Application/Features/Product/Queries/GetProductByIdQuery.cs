@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using LangNghe.Application.Common;
 using LangNghe.Application.Features.Product.Dtos;
 using LangNghe.Domain.Exceptions;
 using LangNghe.Domain.Interfaces;
@@ -13,10 +14,12 @@ public record GetProductByIdQuery(int Id) : IRequest<ProductDto>;
 public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, ProductDto>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetProductByIdQueryHandler(ILangNgheDbContext context)
+    public GetProductByIdQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ProductDto> Handle(GetProductByIdQuery request, CancellationToken cancellationToken)
@@ -24,6 +27,7 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, P
         var product = await _context.Products
             .AsNoTracking()
             .Include(x => x.CraftVillage)
+            .ApplyDataScopeFilter(_currentUserService)
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (product == null)

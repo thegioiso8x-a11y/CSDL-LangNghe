@@ -21,10 +21,12 @@ public class GetVillageGeoListQueryHandler
     : IRequestHandler<GetVillageGeoListQuery, ApiResponse<List<VillageGeoDto>>>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetVillageGeoListQueryHandler(ILangNgheDbContext context)
+    public GetVillageGeoListQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     /// <summary>
@@ -36,7 +38,8 @@ public class GetVillageGeoListQueryHandler
     {
         var query = _context.CraftVillages
             .AsNoTracking()
-            .Where(v => v.Latitude != null && v.Longitude != null);
+            .Where(v => v.Latitude != null && v.Longitude != null)
+            .ApplyDataScopeFilter(_currentUserService);
 
         if (request.ProvinceId.HasValue)
         {

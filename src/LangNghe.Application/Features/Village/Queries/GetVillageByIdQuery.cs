@@ -1,3 +1,4 @@
+using LangNghe.Application.Common;
 using LangNghe.Application.Features.Village.Dtos;
 using LangNghe.Domain.Exceptions;
 using LangNghe.Domain.Interfaces;
@@ -11,15 +12,18 @@ public record GetVillageByIdQuery(int Id) : IRequest<VillageDetailDto>;
 public class GetVillageByIdQueryHandler : IRequestHandler<GetVillageByIdQuery, VillageDetailDto>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetVillageByIdQueryHandler(ILangNgheDbContext context)
+    public GetVillageByIdQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<VillageDetailDto> Handle(GetVillageByIdQuery request, CancellationToken cancellationToken)
     {
         var village = await _context.CraftVillages.AsNoTracking()
+            .ApplyDataScopeFilter(_currentUserService)
             .Where(v => v.Id == request.Id)
             .Select(v => new VillageDetailDto(
                 v.Id,

@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using LangNghe.Application.Common;
 using LangNghe.Application.Features.PeriodicMetric.Dtos;
 using LangNghe.Domain.Exceptions;
 using LangNghe.Domain.Interfaces;
@@ -13,10 +14,12 @@ public record GetMetricByIdQuery(long Id) : IRequest<MetricDto>;
 public class GetMetricByIdQueryHandler : IRequestHandler<GetMetricByIdQuery, MetricDto>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMetricByIdQueryHandler(ILangNgheDbContext context)
+    public GetMetricByIdQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<MetricDto> Handle(GetMetricByIdQuery request, CancellationToken cancellationToken)
@@ -28,6 +31,7 @@ public class GetMetricByIdQueryHandler : IRequestHandler<GetMetricByIdQuery, Met
             .Include(x => x.Province)
             .Include(x => x.ExportCategory)
             .Include(x => x.OutputUnit)
+            .ApplyDataScopeFilter(_currentUserService)
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken);
 
         if (metric == null)

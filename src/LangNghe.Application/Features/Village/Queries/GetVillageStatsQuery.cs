@@ -25,16 +25,19 @@ public record VillageStatsDto(
 public class GetVillageStatsQueryHandler : IRequestHandler<GetVillageStatsQuery, ApiResponse<VillageStatsDto>>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetVillageStatsQueryHandler(ILangNgheDbContext context)
+    public GetVillageStatsQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ApiResponse<VillageStatsDto>> Handle(GetVillageStatsQuery request, CancellationToken cancellationToken)
     {
         var filter = request.Dto;
-        var query = _context.CraftVillages.AsNoTracking().AsQueryable();
+        var query = _context.CraftVillages.AsNoTracking().AsQueryable()
+            .ApplyDataScopeFilter(_currentUserService);
 
         // Áp dụng cùng điều kiện lọc như GetVillageListQuery
         if (!string.IsNullOrWhiteSpace(filter.Keyword))

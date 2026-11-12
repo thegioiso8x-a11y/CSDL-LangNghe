@@ -14,10 +14,12 @@ public record GetArtisanListQuery(ArtisanFilterDto Dto) : IRequest<PagedResult<A
 public class GetArtisanListQueryHandler : IRequestHandler<GetArtisanListQuery, PagedResult<ArtisanDto>>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetArtisanListQueryHandler(ILangNgheDbContext context)
+    public GetArtisanListQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PagedResult<ArtisanDto>> Handle(GetArtisanListQuery request, CancellationToken cancellationToken)
@@ -25,7 +27,8 @@ public class GetArtisanListQueryHandler : IRequestHandler<GetArtisanListQuery, P
         var query = _context.Artisans
             .AsNoTracking()
             .Include(x => x.CraftVillage)
-            .AsQueryable();
+            .AsQueryable()
+            .ApplyDataScopeFilter(_currentUserService);
 
         if (request.Dto.CraftVillageId.HasValue)
         {

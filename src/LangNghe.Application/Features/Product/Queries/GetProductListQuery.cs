@@ -14,10 +14,12 @@ public record GetProductListQuery(ProductFilterDto Dto) : IRequest<PagedResult<P
 public class GetProductListQueryHandler : IRequestHandler<GetProductListQuery, PagedResult<ProductDto>>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetProductListQueryHandler(ILangNgheDbContext context)
+    public GetProductListQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<PagedResult<ProductDto>> Handle(GetProductListQuery request, CancellationToken cancellationToken)
@@ -25,7 +27,8 @@ public class GetProductListQueryHandler : IRequestHandler<GetProductListQuery, P
         var query = _context.Products
             .AsNoTracking()
             .Include(x => x.CraftVillage)
-            .AsQueryable();
+            .AsQueryable()
+            .ApplyDataScopeFilter(_currentUserService);
 
         if (request.Dto.CraftVillageId.HasValue)
         {

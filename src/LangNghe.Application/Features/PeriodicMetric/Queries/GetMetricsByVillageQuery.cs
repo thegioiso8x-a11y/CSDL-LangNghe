@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using LangNghe.Application.Common;
 using LangNghe.Application.Features.PeriodicMetric.Dtos;
 using LangNghe.Domain.Interfaces;
 using MediatR;
@@ -14,10 +15,12 @@ public record GetMetricsByVillageQuery(int VillageId) : IRequest<List<MetricDto>
 public class GetMetricsByVillageQueryHandler : IRequestHandler<GetMetricsByVillageQuery, List<MetricDto>>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetMetricsByVillageQueryHandler(ILangNgheDbContext context)
+    public GetMetricsByVillageQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<List<MetricDto>> Handle(GetMetricsByVillageQuery request, CancellationToken cancellationToken)
@@ -29,6 +32,7 @@ public class GetMetricsByVillageQueryHandler : IRequestHandler<GetMetricsByVilla
             .Include(x => x.Province)
             .Include(x => x.ExportCategory)
             .Include(x => x.OutputUnit)
+            .ApplyDataScopeFilter(_currentUserService)
             .Where(x => x.CraftVillageId == request.VillageId)
             .OrderByDescending(x => x.ReportPeriod)
             .Select(x => new MetricDto(
