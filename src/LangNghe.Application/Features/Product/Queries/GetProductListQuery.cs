@@ -58,6 +58,7 @@ public class GetProductListQueryHandler : IRequestHandler<GetProductListQuery, P
         var items = await query
             .OrderBy(x => x.SortOrder)
             .ThenBy(x => x.Name)
+            .ThenBy(x => x.Id)
             .Skip((request.Dto.Page - 1) * request.Dto.PageSize)
             .Take(request.Dto.PageSize)
             .Select(x => new ProductDto(

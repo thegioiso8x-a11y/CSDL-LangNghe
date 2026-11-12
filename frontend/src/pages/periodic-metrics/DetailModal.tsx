@@ -105,7 +105,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({ id, open, onClose }) =
             </Descriptions.Item>
             <Descriptions.Item label="Sản lượng">{metric.output ? formatNumber(metric.output) : '-'}</Descriptions.Item>
             <Descriptions.Item label="Đơn vị tính">{metric.outputUnitName || '-'}</Descriptions.Item>
-            <Descriptions.Item label="Doanh thu">{formatNumber(metric.revenue)} triệu VNĐ</Descriptions.Item>
+            <Descriptions.Item label="Doanh thu">{formatNumber((metric.revenue ?? 0) / 1_000_000)} triệu VNĐ</Descriptions.Item>
             <Descriptions.Item label="Tốc độ tăng trưởng">
               {metric.growthRate !== null ? `${formatNumber(metric.growthRate)}%` : '-'}
             </Descriptions.Item>

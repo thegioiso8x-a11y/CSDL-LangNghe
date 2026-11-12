@@ -158,12 +158,13 @@ export const PeriodicMetricList: React.FC = () => {
       render: (type: number) => <Tag>{getPeriodTypeLabel(type)}</Tag>,
     },
     {
-      title: 'Doanh thu (tr.đ)',
+      title: 'Doanh thu (Triệu VNĐ)',
       dataIndex: 'revenue',
       key: 'revenue',
-      width: 140,
+      width: 160,
       align: 'right',
-      render: (rev: number) => formatNumber(rev),
+      // DB lưu đơn vị VNĐ (đồng) → chia 1.000.000 để hiển thị theo Triệu VNĐ
+      render: (rev: number) => formatNumber((rev ?? 0) / 1_000_000),
     },
     {
       title: 'Lao động',

@@ -90,3 +90,16 @@
 - Secret đã move sang User Secrets, appsettings.json để rỗng.
 - Git history clean bằng git filter-repo --replace-text.
 - DB dùng user langnghe_app (db_owner), không dùng sa.
+
+## 19. Dọn dẹp bằng `find . -name "bin"` quét toàn dự án — XÓA NHẦM file Vite
+- Lệnh `find . -name "bin"` (hoặc tương tự) quét toàn dự án đã vô tình xóa mất file thực thi của Vite trong `node_modules` (thư mục `node_modules/.bin`).
+- Nguyên tắc: Khi dọn dẹp build artifacts, **giới hạn rõ thư mục** (chỉ dọn trong `src/`), KHÔNG quét toàn repo.
+
+## 20. KHÔNG đưa `venv/` (Python) và `media/` lên Git
+- Thư mục `venv/` (Python virtualenv) và `media/` (file upload) tuyệt đối không commit lên Git.
+- Đã bổ sung vào `.gitignore`.
+
+## 21. Logic Data Warehouse: Agg phải cộng dồn TẤT CẢ metrics bất kể `IsEffective`
+- Khi tổng hợp (Agg), phải cộng dồn tất cả metrics **bất kể trạng thái `IsEffective`**.
+- Nếu lọc `IsEffective == 1` khi tổng hợp → tổng doanh thu/lao động sẽ bị thiếu (làng "không hiệu quả" vẫn có doanh thu/lao động thực tế).
+- `IsEffective` chỉ dùng để đếm số làng hiệu quả (chỉ tiêu riêng), KHÔNG dùng để loại dữ liệu khỏi tổng.

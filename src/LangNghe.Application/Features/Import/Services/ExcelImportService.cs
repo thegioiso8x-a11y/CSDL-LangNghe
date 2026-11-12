@@ -137,7 +137,16 @@ public class ExcelImportService : IExcelImportService
                 if (!string.IsNullOrEmpty(cellValueStr))
                 {
                     isEmptyRow = false;
-                    rowData[fieldName] = ParseValue(cellValueStr, dataType);
+                    // Các cột khóa ngoại có thể chứa Mã (Code) dạng chuỗi có số 0 ở đầu (VD: "01576").
+                    // Giữ nguyên dạng string để ImportAsync resolve Code -> Id chính xác.
+                    if (IsForeignKeyField(fieldName))
+                    {
+                        rowData[fieldName] = cellValueStr;
+                    }
+                    else
+                    {
+                        rowData[fieldName] = ParseValue(cellValueStr, dataType);
+                    }
                 }
             }
 
@@ -218,16 +227,9 @@ public class ExcelImportService : IExcelImportService
             .Where(v => villageCodes.Contains(v.VillageCode))
             .ToDictionaryAsync(v => v.VillageCode, ct);
             
+        // Mã tỉnh của user (dùng cho DataScope = 2). Với DataScope = 3 sẽ kiểm tra RegionId chính xác.
         string? userProvinceCode = null;
-        if (_currentUserService.DataScope == 3 && _currentUserService.RegionId.HasValue)
-        {
-            var userRegion = await _context.Regions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == _currentUserService.RegionId.Value, ct);
-            if (userRegion != null)
-            {
-                userProvinceCode = userRegion.RegionCode.Substring(0, Math.Min(userRegion.RegionCode.Length, 2));
-            }
-        }
-        else if (_currentUserService.DataScope == 2 && _currentUserService.RegionId.HasValue)
+        if (_currentUserService.DataScope == 2 && _currentUserService.RegionId.HasValue)
         {
             var userRegion = await _context.Regions.AsNoTracking().FirstOrDefaultAsync(r => r.Id == _currentUserService.RegionId.Value, ct);
             if (userRegion != null)
@@ -238,6 +240,63 @@ public class ExcelImportService : IExcelImportService
 
         var errorsToSave = new List<ImportErrorLog>();
         
+        // ===== Ánh xạ Mã (Code) -> ID cho các trường khóa ngoại =====
+        // Người dùng có thể nhập Mã xã/Phân loại/Loại hình/Nhóm ngành (chuỗi) thay vì ID (số nguyên).
+        var regionCodeToId = await _context.Regions
+            .AsNoTracking()
+            .Where(r => r.LevelType == 2 && r.IsActive)
+            .ToDictionaryAsync(r => r.RegionCode, r => r.Id, ct);
+        var regionIds = regionCodeToId.Values.ToHashSet();
+
+        var classificationCodeToId = await _context.Classifications
+            .AsNoTracking()
+            .ToDictionaryAsync(c => c.Code, c => c.Id, ct);
+        var classificationIds = classificationCodeToId.Values.ToHashSet();
+
+        var villageTypeCodeToId = await _context.VillageTypes
+            .AsNoTracking()
+            .ToDictionaryAsync(v => v.Code, v => v.Id, ct);
+        var villageTypeIds = villageTypeCodeToId.Values.ToHashSet();
+
+        var industryGroupCodeToId = await _context.IndustryGroups
+            .AsNoTracking()
+            .ToDictionaryAsync(g => g.Code, g => g.Id, ct);
+        var industryGroupIds = industryGroupCodeToId.Values.ToHashSet();
+
+        // Hàm nội bộ: resolve giá trị FK (Code hoặc Id) -> Id (int). Trả về null nếu không hợp lệ.
+        int? ResolveForeignKey(
+            Dictionary<string, object?> data,
+            string fieldName,
+            Dictionary<string, int> codeToId,
+            HashSet<int> validIds)
+        {
+            if (!data.TryGetValue(fieldName, out var raw) || raw == null)
+                return null;
+
+            var text = raw.ToString()?.Trim();
+            if (string.IsNullOrWhiteSpace(text))
+                return null;
+
+            // 1) Khớp theo Mã (Code) — ưu tiên vì mã xã dạng "01576" có thể bị parse thành int 1576
+            if (codeToId.TryGetValue(text, out var idByCode))
+                return idByCode;
+
+            // 2) Nếu là số và tồn tại trong DB -> coi là ID hợp lệ
+            if (int.TryParse(text, out var idByNumber) && validIds.Contains(idByNumber))
+                return idByNumber;
+
+            return null;
+        }
+
+        // Danh sách 4 trường FK cần resolve: (FieldName, Tên cột hiển thị, codeToId, validIds)
+        var fkFields = new (string FieldName, string ColumnName, Dictionary<string, int> CodeToId, HashSet<int> ValidIds)[]
+        {
+            ("RegionId", "Mã xã", regionCodeToId, regionIds),
+            ("ClassificationId", "Phân loại", classificationCodeToId, classificationIds),
+            ("VillageTypeId", "Loại hình", villageTypeCodeToId, villageTypeIds),
+            ("IndustryGroupId", "Nhóm ngành", industryGroupCodeToId, industryGroupIds),
+        };
+
         for(int i = 0; i < stags.Count; i++)
         {
             var rowData = parsedRows[i];
@@ -264,6 +323,40 @@ public class ExcelImportService : IExcelImportService
                 }
             }
             
+            // ===== Resolve 4 trường khóa ngoại: Mã (Code) -> ID =====
+            foreach (var fk in fkFields)
+            {
+                if (!rowData.TryGetValue(fk.FieldName, out var rawFk) || rawFk == null)
+                    continue;
+
+                var rawText = rawFk.ToString()?.Trim();
+                if (string.IsNullOrWhiteSpace(rawText))
+                    continue;
+
+                var resolvedId = ResolveForeignKey(rowData, fk.FieldName, fk.CodeToId, fk.ValidIds);
+                if (resolvedId.HasValue)
+                {
+                    // Gán đè bằng int để UpdateVillageProperty hiểu đúng kiểu
+                    rowData[fk.FieldName] = resolvedId.Value;
+                }
+                else
+                {
+                    isRowValid = false;
+                    var msg = $"Mã {fk.ColumnName} không tồn tại trong hệ thống";
+                    errorsToSave.Add(new ImportErrorLog
+                    {
+                        ImportBatchId = batchId,
+                        RowNumber = stag.RowNumber,
+                        ColumnName = fk.ColumnName,
+                        ErrorCode = "INVALID_FK",
+                        ErrorMessage = msg,
+                        Severity = 1,
+                        CreatedAt = DateTime.UtcNow
+                    });
+                    rowErrors.Add(msg);
+                }
+            }
+
             var vCodeObj = rowData.GetValueOrDefault("VillageCode");
             var vCode = vCodeObj?.ToString();
             
@@ -287,12 +380,26 @@ public class ExcelImportService : IExcelImportService
                     rowErrors.Add(msg);
                 }
                 
-                if (_currentUserService.DataScope == 2 || _currentUserService.DataScope == 3)
+                // ===== Kiểm tra quyền theo địa bàn (Data Scope Isolation) =====
+                if (_currentUserService.DataScope == 2)
                 {
+                    // Tỉnh: mã làng nghề phải bắt đầu bằng mã tỉnh của user
                     if (userProvinceCode != null && !vCode.StartsWith(userProvinceCode))
                     {
                         isRowValid = false;
                         var msg = "Làng nghề không thuộc thẩm quyền quản lý";
+                        errorsToSave.Add(new ImportErrorLog { ImportBatchId = batchId, RowNumber = stag.RowNumber, ErrorMessage = msg, Severity = 1, CreatedAt = DateTime.UtcNow });
+                        rowErrors.Add(msg);
+                    }
+                }
+                else if (_currentUserService.DataScope == 3)
+                {
+                    // Xã: RegionId (đã resolve từ Code) phải trùng khớp chính xác với xã của user
+                    var resolvedRegionId = rowData.TryGetValue("RegionId", out var regionRaw) && regionRaw is int rid ? rid : (int?)null;
+                    if (!_currentUserService.RegionId.HasValue || resolvedRegionId != _currentUserService.RegionId.Value)
+                    {
+                        isRowValid = false;
+                        var msg = "Làng nghề không thuộc xã/phường quản lý";
                         errorsToSave.Add(new ImportErrorLog { ImportBatchId = batchId, RowNumber = stag.RowNumber, ErrorMessage = msg, Severity = 1, CreatedAt = DateTime.UtcNow });
                         rowErrors.Add(msg);
                     }
@@ -511,5 +618,14 @@ public class ExcelImportService : IExcelImportService
     {
         var lower = value.ToLowerInvariant();
         return lower == "x" || lower == "1" || lower == "true" || lower == "yes";
+    }
+
+    /// <summary>
+    /// Các cột khóa ngoại có thể nhập Mã (Code) dạng chuỗi (VD: "01576") thay vì ID số nguyên.
+    /// Cần giữ nguyên dạng string khi parse để resolve Code -> Id chính xác.
+    /// </summary>
+    private static bool IsForeignKeyField(string fieldName)
+    {
+        return fieldName is "RegionId" or "ClassificationId" or "VillageTypeId" or "IndustryGroupId";
     }
 }

@@ -143,12 +143,6 @@ export const VillageList: React.FC = () => {
 
   const columns: ColumnsType<VillageListDto> = [
     {
-      title: 'STT',
-      width: 65,
-      align: 'center',
-      render: (_, __, index) => ((filter.page ?? 1) - 1) * (filter.pageSize ?? 10) + index + 1,
-    },
-    {
       title: 'Mã LN',
       dataIndex: 'villageCode',
       key: 'villageCode',
@@ -164,23 +158,6 @@ export const VillageList: React.FC = () => {
           {name}
         </a>
       ),
-    },
-    {
-      title: 'Ảnh',
-      dataIndex: 'imageUrl',
-      key: 'imageUrl',
-      width: 80,
-      align: 'center',
-      render: (imageUrl: string | null | undefined) =>
-        imageUrl ? (
-          <img
-            src={imageUrl}
-            alt="Ảnh làng nghề"
-            style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }}
-          />
-        ) : (
-          '-'
-        ),
     },
     {
       title: 'Tỉnh / TP',
@@ -214,28 +191,25 @@ export const VillageList: React.FC = () => {
     },
     {
       title: 'Trạng thái',
-      dataIndex: 'status',
       key: 'status',
-      width: 120,
+      width: 150,
       align: 'center',
-      render: (status: number) => {
-        if (status === 1) return <Badge status="success" text="Hoạt động" />
-        if (status === 2) return <Badge status="error" text="Tạm ngừng" />
-        return <Badge status="default" text="Bản nháp" />
-      },
-    },
-    {
-      title: 'Công bố',
-      dataIndex: 'isPublished',
-      key: 'isPublished',
-      width: 110,
-      align: 'center',
-      render: (published: boolean) =>
-        published ? (
-          <Tag color="green">Đã công bố</Tag>
-        ) : (
-          <Tag color="orange">Chưa công bố</Tag>
-        ),
+      render: (_, record) => (
+        <Space direction="vertical" size="small">
+          {record.status === 1 ? (
+            <Badge status="success" text="Hoạt động" />
+          ) : record.status === 2 ? (
+            <Badge status="error" text="Tạm ngừng" />
+          ) : (
+            <Badge status="default" text="Bản nháp" />
+          )}
+          {record.isPublished ? (
+            <Tag color="green">Đã công bố</Tag>
+          ) : (
+            <Tag color="orange">Chưa công bố</Tag>
+          )}
+        </Space>
+      ),
     },
     {
       title: 'Thao tác',

@@ -66,7 +66,10 @@ public class CreateMetricCommandHandler : IRequestHandler<CreateMetricCommand, l
             HouseholdCount = request.Dto.HouseholdCount,
             EnterpriseCount = request.Dto.EnterpriseCount,
             ProductionArea = request.Dto.ProductionArea,
-            ActiveMonths = request.Dto.ActiveMonths,
+            // Kỳ Năm (PeriodType = 3): nếu không nhập số tháng hoạt động thì mặc định 12 tháng
+            ActiveMonths = request.Dto.PeriodType == 3
+                ? (request.Dto.ActiveMonths ?? 12)
+                : request.Dto.ActiveMonths,
             Output = request.Dto.Output,
             OutputUnitId = request.Dto.OutputUnitId,
             Revenue = request.Dto.Revenue,

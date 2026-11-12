@@ -177,7 +177,7 @@ public class ExcelTemplateService : IExcelTemplateService
     }
 
     /// <summary>
-    /// Sinh file Excel mẫu gồm 2 sheet: "Hướng dẫn" và "Dữ liệu" cho template tương ứng.
+    /// Sinh file Excel mẫu gồm 3 sheet: "Hướng dẫn", "Dữ liệu" và "Danh mục tra cứu" cho template tương ứng.
     /// </summary>
     public async Task<byte[]> GenerateTemplateAsync(string templateCode, CancellationToken ct)
     {
@@ -209,6 +209,10 @@ public class ExcelTemplateService : IExcelTemplateService
             "- Ngày công nhận định dạng YYYY-MM-DD (ví dụ: 2020-01-15).",
             "- Cột kiểu bool nhập TRUE/FALSE hoặc 1/0.",
             "- Cột kiểu số nhập số nguyên hoặc số thực, không kèm đơn vị.",
+            string.Empty,
+            "TRA CỨU ID NỘI BỘ:",
+            "- Xem sheet \"Danh mục tra cứu\" (sheet thứ 3) để lấy ID nội bộ của Xã/Phường, Phân loại, Loại hình, Nhóm ngành.",
+            "- Điền các ID này vào các cột RegionId, ClassificationId, VillageTypeId, IndustryGroupId ở sheet \"Dữ liệu\".",
             string.Empty,
             "DANH SÁCH CỘT:",
         };
@@ -261,9 +265,131 @@ public class ExcelTemplateService : IExcelTemplateService
 
         dataSheet.Columns().AdjustToContents();
 
+        // ===== Sheet 3: Danh mục tra cứu =====
+        var lookupSheet = workbook.Worksheets.Add("Danh mục tra cứu");
+
+        // Query danh mục từ DB (chỉ đọc, AsNoTracking)
+        var communes = await _context.Regions
+            .AsNoTracking()
+            .Where(x => x.LevelType == 2 && x.IsActive)
+            .OrderBy(x => x.RegionCode)
+            .ToListAsync(ct);
+
+        var provinceNames = await _context.Regions
+            .AsNoTracking()
+            .Where(x => x.LevelType == 1)
+            .ToDictionaryAsync(x => x.Id, x => x.Name, ct);
+
+        var classifications = await _context.Classifications
+            .AsNoTracking()
+            .OrderBy(x => x.SortOrder)
+            .ThenBy(x => x.Code)
+            .ToListAsync(ct);
+
+        var villageTypes = await _context.VillageTypes
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.SortOrder)
+            .ThenBy(x => x.Code)
+            .ToListAsync(ct);
+
+        var industryGroups = await _context.IndustryGroups
+            .AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.SortOrder)
+            .ThenBy(x => x.Code)
+            .ToListAsync(ct);
+
+        var currentRow = 1;
+
+        // Bảng 1: Xã/Phường
+        currentRow = WriteLookupTable(
+            lookupSheet,
+            currentRow,
+            "BẢNG 1: XÃ / PHƯỜNG (RegionId)",
+            new[] { "ID", "Mã", "Tên", "Tỉnh mẹ" },
+            communes.Select(x => new[]
+            {
+                x.Id.ToString(),
+                x.RegionCode,
+                x.Name,
+                x.ParentId.HasValue && provinceNames.TryGetValue(x.ParentId.Value, out var provinceName)
+                    ? provinceName
+                    : string.Empty,
+            }).ToList());
+
+        // Bảng 2: Phân loại
+        currentRow = WriteLookupTable(
+            lookupSheet,
+            currentRow,
+            "BẢNG 2: PHÂN LOẠI (ClassificationId)",
+            new[] { "ID", "Mã", "Tên" },
+            classifications.Select(x => new[] { x.Id.ToString(), x.Code, x.Name }).ToList());
+
+        // Bảng 3: Loại hình
+        currentRow = WriteLookupTable(
+            lookupSheet,
+            currentRow,
+            "BẢNG 3: LOẠI HÌNH (VillageTypeId)",
+            new[] { "ID", "Mã", "Tên" },
+            villageTypes.Select(x => new[] { x.Id.ToString(), x.Code, x.Name }).ToList());
+
+        // Bảng 4: Nhóm ngành
+        WriteLookupTable(
+            lookupSheet,
+            currentRow,
+            "BẢNG 4: NHÓM NGÀNH (IndustryGroupId)",
+            new[] { "ID", "Mã", "Tên" },
+            industryGroups.Select(x => new[] { x.Id.ToString(), x.Code, x.Name }).ToList());
+
+        lookupSheet.Columns().AdjustToContents();
+
         using var memoryStream = new MemoryStream();
         workbook.SaveAs(memoryStream);
         return memoryStream.ToArray();
+    }
+
+    /// <summary>
+    /// Vẽ một bảng danh mục tra cứu (tiêu đề + header + dữ liệu) lên sheet, trả về dòng kế tiếp sau bảng.
+    /// </summary>
+    private static int WriteLookupTable(
+        IXLWorksheet sheet,
+        int startRow,
+        string tableTitle,
+        string[] headers,
+        List<string[]> rows)
+    {
+        // Tiêu đề bảng
+        var titleCell = sheet.Cell(startRow, 1);
+        titleCell.Value = tableTitle;
+        titleCell.Style.Font.Bold = true;
+        titleCell.Style.Font.FontSize = 12;
+
+        // Header
+        var headerRow = startRow + 1;
+        for (int i = 0; i < headers.Length; i++)
+        {
+            var cell = sheet.Cell(headerRow, i + 1);
+            cell.Value = headers[i];
+            cell.Style.Font.Bold = true;
+            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            cell.Style.Fill.BackgroundColor = XLColor.LightGray;
+            cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        }
+
+        // Dữ liệu
+        var dataRow = headerRow + 1;
+        foreach (var row in rows)
+        {
+            for (int i = 0; i < row.Length; i++)
+            {
+                sheet.Cell(dataRow, i + 1).Value = row[i];
+            }
+            dataRow++;
+        }
+
+        // Trả về dòng bắt đầu của bảng kế tiếp (cách 2 dòng trống)
+        return dataRow + 2;
     }
 
     /// <summary>

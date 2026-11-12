@@ -80,12 +80,12 @@ Route `/api/v1/periodic-metrics` (**chú ý Id là `long`**):
 - GrowthRate ∈ [-100, 100]
 - ProductionProcess ∈ {Truyền thống, Hiện đại, Kết hợp}
 
-### ✅ Import Excel (Đợt 7) — VERIFIED TỪ DB 2026-10-21
+### ✅ Import Excel (Đợt 7) — CẬP NHẬT 2026-11-05
 
-**⚠️ Sự thật từ DB (khác tài liệu cũ):**
-- Database **CHỈ có 1 template active: V1_MINIMAL** (11 cột tiếng Việt không dấu).
-- V1_FULL và MONTHLY **chưa được seed** vào bảng `Import_TemplateConfig`.
-- Tài liệu cũ ghi "3 template: V1_FULL 47 cột, V1_MINIMAL 8-11 cột, MONTHLY" là **sai/thiếu** — phải verify DB.
+**✅ Trạng thái template (đã seed đầy đủ):**
+- DB hiện đã có **đủ 3 template** trong bảng `Import_TemplateConfig`: **V1_FULL (47 cột)**, **V1_MINIMAL (11 cột)**, **MONTHLY (7 cột)**.
+- Script seed: `docs/migrations/20261105_seed_import_templates.sql` (idempotent — dùng `WHERE NOT EXISTS` theo `(TemplateCode, FieldName)`).
+- (Trước đây DB chỉ có V1_MINIMAL — nay đã bổ sung V1_FULL và MONTHLY.)
 
 **Cấu trúc V1_MINIMAL (11 cột, từ `Import_TemplateConfig`):**
 
@@ -109,9 +109,17 @@ Route `/api/v1/periodic-metrics` (**chú ý Id là `long`**):
 
 **Endpoints `/api/v1/imports`:**
 - `POST /upload` — multipart (file, templateCode, importMode)
+- `GET /template?templateCode=` — **tải file Excel mẫu** (xem chi tiết bên dưới)
 - `GET /{batchId:guid}/preview` — chi tiết lỗi
 - `GET /` — lịch sử (phân trang)
 - `POST /{batchId:guid}/rollback` — đánh dấu rollback
+
+**✅ API tải file Excel mẫu — `GET /api/v1/imports/template?templateCode=`** (policy `ImportUpload`):
+- Trả `FileContentResult` (.xlsx) qua `IExcelTemplateService.GenerateTemplateAsync`.
+- File gồm **2 Sheet**:
+  - **Sheet "Hướng dẫn"**: tiêu đề + quy tắc chung + quy tắc dữ liệu + danh sách cột chi tiết (cột A width 80).
+  - **Sheet "Dữ liệu"**: dòng 1 là header (in đậm, căn giữa); **cột bắt buộc (`IsRequired`) tô nền hồng nhạt (`XLColor.LightPink`)**, cột không bắt buộc nền trắng; `FreezeRows(1)`; 2 dòng dữ liệu mẫu.
+- Frontend: 3 nút tải riêng biệt (V1_FULL / V1_MINIMAL / MONTHLY) trong Modal Upload; lỗi 404 (template chưa cấu hình) hiển thị message thân thiện.
 
 **Rollback tự động:** > 10% dòng lỗi.
 
@@ -125,6 +133,13 @@ Route `/api/v1/periodic-metrics` (**chú ý Id là `long`**):
 - Cache 2 tầng: Memory 10s → DB (Redis để sau)
 - Export 2 báo cáo Excel: "Đầu ra tổng" + "Đầu ra chi tiết 2" (ClosedXML)
 - DataScope validation: user Tỉnh/Xã chỉ xem vùng mình
+
+**✅ FIX logic Rebuild (2026-11-05):**
+- `RebuildAllPeriodsAsync` **tự động quét TẤT CẢ các năm** có trong `Fact_Village_PeriodicMetrics` (không chỉ năm hiện tại) → rebuild đủ mọi kỳ.
+- **Bỏ qua bộ lọc `IsEffective`** khi tính tổng: làng nghề "không hiệu quả" vẫn được cộng doanh thu/lao động vào tổng báo cáo.
+- **Roll-up (cộng dồn) dữ liệu từ Tháng/Quý lên Năm (`PeriodType = 3`)**: với mỗi năm, nếu làng đã có báo cáo Năm thì lấy báo cáo Năm; nếu chỉ có Tháng/Quý thì SUM tất cả lại. Xóa Agg cũ của năm (cả 3 bảng) trước khi ghi mới.
+- `RebuildAggCommandHandler` gọi `RebuildAllPeriodsAsync` + `IDashboardCacheService.InvalidateAll()` sau khi rebuild.
+- `GetDashboardMetricsQueryHandler`: query linh hoạt theo `periodType` người dùng gửi, có fallback lấy PeriodType bất kỳ của kỳ nếu rỗng; chỉ cache khi có dữ liệu.
 
 ### ✅ Audit Log (Đợt 9)
 - `AuditLogInterceptor` (SaveChangesInterceptor) + `AuditableEntityInterceptor` cũ
@@ -162,6 +177,8 @@ Module đã xong:
 - 10G: Import Excel (Upload Dragger, 4 mode, Preview batch, Rollback) — CHỈ frontend, backend đã có
 - 10H: Dashboard (9 KPI card + 4 Recharts + FilterBar + RebuildButton + Export Excel) — đã hỗ trợ "Toàn quốc" RegionId=0
 - 10I: Audit Log (List + filter + Detail diff JSON + Cleanup)
+- 10J: **Landing Page** — giao diện trang chủ mới (`pages/landing/Landing.tsx`), có nút đăng nhập, đã cấu hình **route `/` public** (trước đây `/` redirect về `/dashboard`). Khu vực được bảo vệ vẫn nằm dưới `ProtectedRoute`.
+- 10K: **Thẻ KPI thống kê** ở trang Quản lý Làng nghề (`pages/villages/List.tsx`) — 4 thẻ (Tổng số / Đang hoạt động / Chờ duyệt-Nháp / Đã công bố) dùng `Row`/`Col`/`Statistic`; **tự động thay đổi theo bộ lọc hiện tại** (queryKey `['village-stats', filter]`). Backend: `GET /api/v1/villages/stats` nhận cùng `VillageFilterDto` như API list.
 
 Backend bổ sung trong Đợt 10:
 - Fix permission policy: 9 policy mới (VillageRead, VillageApprove, ImportUpload, ImportRollback, ReportView, ReportExport, UserManage, AuditView, ConfigManage) + gắn vào 23 endpoints của 5 Controller

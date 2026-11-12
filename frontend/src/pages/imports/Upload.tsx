@@ -35,9 +35,9 @@ export const ImportUpload: React.FC<ImportUploadProps> = ({ open, onClose }) => 
 
   const uploadMutation = useMutation({
     mutationFn: (values: UploadFormValues) => {
-      const file = fileList[0]?.originFileObj
+      const file = (fileList[0]?.originFileObj || fileList[0]) as File | undefined;
       if (!file) {
-        throw new Error('Vui lòng chọn file Excel')
+        throw new Error('Vui lòng chọn file Excel');
       }
       return uploadImport({ file, ...values })
     },

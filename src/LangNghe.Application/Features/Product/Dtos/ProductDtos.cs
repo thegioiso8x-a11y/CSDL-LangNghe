@@ -52,9 +52,9 @@ public record UpdateProductDto(
 
 public record ProductFilterDto : PageRequest
 {
-    public string? Keyword { get; init; }
-    public int? CraftVillageId { get; init; }
-    public bool? HasOCOP { get; init; }
-    public byte? OcopStar { get; init; }
-    public bool? IsActive { get; init; }
+    public string? Keyword { get; set; }
+    public int? CraftVillageId { get; set; }
+    public bool? HasOCOP { get; set; }
+    public byte? OcopStar { get; set; }
+    public bool? IsActive { get; set; }
 }

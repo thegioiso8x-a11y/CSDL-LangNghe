@@ -75,6 +75,27 @@ public class LangNgheDbContext : DbContext, ILangNgheDbContext
          || (dataScope == 2 && x.Region!.ParentId == userRegionId)     // Tỉnh: các Xã thuộc tỉnh mình
          || (dataScope == 3 && x.RegionId == userRegionId));           // Xã: chỉ làng nghề của xã mình
 
+        // Product Filter — lọc qua quan hệ với CraftVillage để cô lập dữ liệu theo địa bàn
+        builder.Entity<Product>().HasQueryFilter(x =>
+            dataScope == null
+         || dataScope == 1
+         || (dataScope == 2 && x.CraftVillage!.Region!.ParentId == userRegionId)
+         || (dataScope == 3 && x.CraftVillage!.RegionId == userRegionId));
+
+        // Artisan Filter — lọc qua quan hệ với CraftVillage
+        builder.Entity<Artisan>().HasQueryFilter(x =>
+            dataScope == null
+         || dataScope == 1
+         || (dataScope == 2 && x.CraftVillage!.Region!.ParentId == userRegionId)
+         || (dataScope == 3 && x.CraftVillage!.RegionId == userRegionId));
+
+        // VillagePeriodicMetric Filter — lọc qua quan hệ với CraftVillage
+        builder.Entity<VillagePeriodicMetric>().HasQueryFilter(x =>
+            dataScope == null
+         || dataScope == 1
+         || (dataScope == 2 && x.CraftVillage!.Region!.ParentId == userRegionId)
+         || (dataScope == 3 && x.CraftVillage!.RegionId == userRegionId));
+
         // Region Filter (Soft delete)
         builder.Entity<Region>().HasQueryFilter(x => x.IsActive);
         

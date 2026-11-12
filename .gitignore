@@ -70,4 +70,9 @@ media/
 # File rác hệ thống (nếu chưa có)
 .DS_Store
 Thumbs.db
-*.tmp
+*.tmp*.xls
+*.xlsx
+*.py
+sync_regions.sql
+Untitled Document
+User_Import_By_Province/

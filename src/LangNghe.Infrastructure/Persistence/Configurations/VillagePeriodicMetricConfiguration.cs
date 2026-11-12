@@ -47,8 +47,10 @@ public class VillagePeriodicMetricConfiguration : IEntityTypeConfiguration<Villa
             .HasColumnType("decimal(18,2)")
             .HasComputedColumnSql("(Revenue * ExportRate / 100)", stored: true);
 
+        // IsEffective: Revenue > 0 && số tháng hoạt động >= 9 && đủ 4 điều kiện môi trường.
+        // Với kỳ Năm (PeriodType = 3), nếu ActiveMonths null/0 thì coi như 12 tháng.
         builder.Property(x => x.IsEffective)
-            .HasComputedColumnSql("(CASE WHEN ActiveMonths >= 9 AND Revenue > 0 AND HasWasteCollection = 1 AND HasWasteWaterSystem = 1 AND HasSolidWasteSystem = 1 AND HasEmissionTreatment = 1 THEN 1 ELSE 0 END)", stored: true);
+            .HasComputedColumnSql("(CASE WHEN Revenue > 0 AND (CASE WHEN PeriodType = 3 THEN ISNULL(NULLIF(ActiveMonths, 0), 12) ELSE ISNULL(ActiveMonths, 0) END) >= 9 AND HasWasteCollection = 1 AND HasWasteWaterSystem = 1 AND HasSolidWasteSystem = 1 AND HasEmissionTreatment = 1 THEN 1 ELSE 0 END)", stored: true);
 
         builder.Property(x => x.ImportedAt).HasDefaultValueSql("SYSUTCDATETIME()");
 

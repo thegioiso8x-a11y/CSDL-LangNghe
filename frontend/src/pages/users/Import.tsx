@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Alert, Button, Checkbox, Modal, Select, Space, Steps, Table, Tag, Upload, message } from 'antd'
-import type { UploadFile } from 'antd'
+import type { UploadFile, UploadProps } from 'antd'
 import { DownloadOutlined, InboxOutlined } from '@ant-design/icons'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { downloadUserImportTemplate, importUsers, previewUserImport } from '../../api/users'
@@ -27,6 +27,7 @@ export const UserImport: React.FC<UserImportProps> = ({ open, onClose }) => {
   const [skipErrors, setSkipErrors] = useState(false)
   const [preview, setPreview] = useState<UserImportPreviewDto | null>(null)
   const [result, setResult] = useState<UserImportResultDto | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   const queryClient = useQueryClient()
 
   const previewMutation = useMutation({
@@ -35,8 +36,10 @@ export const UserImport: React.FC<UserImportProps> = ({ open, onClose }) => {
       if (!file) throw new Error('Vui lòng chọn file Excel')
       return previewUserImport(file, importMode)
     },
+    onMutate: () => setIsUploading(true),
     onSuccess: (response) => setPreview(response.data),
     onError: (error: unknown) => message.error(getApiErrorMessage(error)),
+    onSettled: () => setIsUploading(false),
   })
   const importMutation = useMutation({
     mutationFn: () => {
@@ -44,12 +47,14 @@ export const UserImport: React.FC<UserImportProps> = ({ open, onClose }) => {
       if (!file) throw new Error('Vui lòng chọn file Excel')
       return importUsers(file, importMode, skipErrors)
     },
+    onMutate: () => setIsUploading(true),
     onSuccess: (response) => {
       setResult(response.data)
       message.success(response.message || 'Import người dùng thành công')
       void queryClient.invalidateQueries({ queryKey: ['users'] })
     },
     onError: (error: unknown) => message.error(getApiErrorMessage(error)),
+    onSettled: () => setIsUploading(false),
   })
 
   useEffect(() => {
@@ -59,12 +64,12 @@ export const UserImport: React.FC<UserImportProps> = ({ open, onClose }) => {
       setSkipErrors(false)
       setPreview(null)
       setResult(null)
+      setIsUploading(false)
     }
   }, [open])
 
   const file = fileList[0]?.originFileObj
   const errorRate = preview && preview.totalRows > 0 ? preview.errorRows / preview.totalRows : 0
-  const canImport = Boolean(file && preview && preview.validRows > 0 && !result)
 
   const downloadTemplate = async () => {
     try {
@@ -87,6 +92,27 @@ export const UserImport: React.FC<UserImportProps> = ({ open, onClose }) => {
     onClose()
   }
 
+  const beforeUpload: UploadProps['beforeUpload'] = (selectedFile) => {
+    if (selectedFile.size > 20 * 1024 * 1024) {
+      message.error('Kích thước file không được vượt quá 20MB')
+      return Upload.LIST_IGNORE
+    }
+    // Chặn AntD tự gọi API; fileList được đồng bộ trong onChange (AntD đã chuẩn hoá originFileObj).
+    return false
+  }
+
+  const onChange: UploadProps['onChange'] = ({ fileList: nextFileList }) => {
+    setFileList(nextFileList)
+    setPreview(null)
+    setResult(null)
+  }
+
+  const onRemove = () => {
+    setFileList([])
+    setPreview(null)
+    setResult(null)
+  }
+
   return (
     <Modal title="Import Excel người dùng" open={open} width={1050} onCancel={close} footer={null} destroyOnClose>
       <Steps current={result ? 2 : preview ? 1 : 0} items={[{ title: 'Upload file' }, { title: 'Preview' }, { title: 'Hoàn tất' }]} style={{ marginBottom: 24 }} />
@@ -99,26 +125,18 @@ export const UserImport: React.FC<UserImportProps> = ({ open, onClose }) => {
           accept=".xlsx"
           maxCount={1}
           fileList={fileList}
-          beforeUpload={(selectedFile) => {
-            if (selectedFile.size > 20 * 1024 * 1024) {
-              message.error('Kích thước file không được vượt quá 20MB')
-              return Upload.LIST_IGNORE
-            }
-            setFileList([selectedFile])
-            setPreview(null)
-            setResult(null)
-            return false
-          }}
-          onRemove={() => { setFileList([]); setPreview(null); setResult(null) }}
+          beforeUpload={beforeUpload}
+          onChange={onChange}
+          onRemove={onRemove}
         >
           <p className="ant-upload-drag-icon"><InboxOutlined /></p>
           <p className="ant-upload-text">Kéo thả hoặc bấm để chọn file .xlsx</p>
           <p className="ant-upload-hint">Chỉ nhận .xlsx, tối đa 20MB</p>
         </Dragger>
         <Space>
-          <Button type="primary" onClick={() => previewMutation.mutate()} loading={previewMutation.isPending} disabled={!file}>Preview</Button>
+          <Button type="primary" onClick={() => previewMutation.mutate()} loading={previewMutation.isPending} disabled={!file || isUploading}>Preview</Button>
           <Checkbox checked={skipErrors} onChange={(event) => setSkipErrors(event.target.checked)} disabled={!preview || Boolean(result)}>Bỏ qua dòng lỗi</Checkbox>
-          <Button type="primary" danger onClick={() => importMutation.mutate()} loading={importMutation.isPending} disabled={!canImport}>Import chính thức</Button>
+          <Button type="primary" danger onClick={() => importMutation.mutate()} loading={importMutation.isPending} disabled={!preview || isUploading}>Import chính thức</Button>
         </Space>
         {preview && <>
           {errorRate > 0.1 && !skipErrors && <Alert type="error" showIcon message="File có lỗi vượt ngưỡng 10%. Hãy chọn 'Bỏ qua dòng lỗi' để chỉ import dòng hợp lệ." />}
@@ -147,3 +165,4 @@ export const UserImport: React.FC<UserImportProps> = ({ open, onClose }) => {
 }
 
 export default UserImport
+

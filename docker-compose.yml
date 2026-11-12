@@ -11,6 +11,10 @@ services:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=${CONNECTION_STRING}
       - Jwt__SecretKey=${JWT_SECRET_KEY}
+    volumes:
+      # Giữ file ảnh upload (wwwroot/uploads) bền vững giữa các lần restart/redeploy.
+      # nginx proxy /uploads/ -> api:8080/uploads/ nên chỉ cần api đọc được thư mục này.
+      - ./deploy/uploads:/app/wwwroot/uploads
 
   web:
     build:

@@ -28,7 +28,7 @@ GO
         ( 3, N'RegionId',             N'Ma xa',               'int',      1, NULL,N'Thông tin chung', N'ID nội bộ xã/phường (số nguyên)'),
         ( 4, N'Address',              N'Dia chi',             'string',   0, 500, N'Thông tin chung', N'Địa chỉ chi tiết'),
         ( 5, N'RecognitionDate',      N'Ngay cong nhan',      'datetime', 1, NULL,N'Thông tin chung', N'Ngày công nhận (YYYY-MM-DD)'),
-        ( 6, N'RecognitionDecision',  N'Quyet dinh',          'string',   1, 200, N'Thông tin chung', N'Số quyết định công nhận'),
+        ( 6, N'RecognitionDecision',  N'Quyet dinh',          'string',   0, 200, N'Thông tin chung', N'Số quyết định công nhận'),
         ( 7, N'ClassificationId',     N'Phan loai',           'int',      1, NULL,N'Thông tin chung', N'ID phân loại (số nguyên)'),
         ( 8, N'VillageTypeId',        N'Loai hinh',           'int',      1, NULL,N'Thông tin chung', N'ID loại hình (số nguyên)'),
         ( 9, N'IndustryGroupId',      N'Nhom nganh',          'int',      1, NULL,N'Thông tin chung', N'ID nhóm ngành (số nguyên)'),

@@ -78,12 +78,14 @@ public class VillageOwnershipService : IVillageOwnershipService
             .AsNoTracking()
             .Include(v => v.Region)
             .ThenInclude(r => r.Parent)
-            .FirstOrDefaultAsync(v => v.Id == craftVillageId, ct)
-            ?? throw new NotFoundException("Làng nghề không tồn tại", craftVillageId);
+            .FirstOrDefaultAsync(v => v.Id == craftVillageId, ct);
+
+        if (village == null)
+            throw new NotFoundException("Làng nghề không tồn tại", craftVillageId);
 
         if (dataScope == 2) // Tỉnh
         {
-            if (village.Region?.ParentId != userRegionId)
+            if (village.Region == null || village.Region.ParentId != userRegionId)
                 throw new BusinessException("Bạn không có quyền truy cập làng nghề này");
         }
         else if (dataScope == 3) // Xã

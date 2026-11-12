@@ -14,16 +14,36 @@ public record GetRegionListQuery(RegionFilterDto Filter) : IRequest<PagedResult<
 public class GetRegionListQueryHandler : IRequestHandler<GetRegionListQuery, PagedResult<RegionDto>>
 {
     private readonly ILangNgheDbContext _context;
+    private readonly ICurrentUserService _currentUser;
 
-    public GetRegionListQueryHandler(ILangNgheDbContext context)
+    public GetRegionListQueryHandler(ILangNgheDbContext context, ICurrentUserService currentUser)
     {
         _context = context;
+        _currentUser = currentUser;
     }
 
     public async Task<PagedResult<RegionDto>> Handle(GetRegionListQuery request, CancellationToken cancellationToken)
     {
         var filter = request.Filter;
         var query = _context.Regions.AsNoTracking();
+
+        // ===== Data Scope Isolation: Tỉnh/Xã chỉ thấy Tỉnh mẹ + các Xã con thuộc quyền quản lý =====
+        var dataScope = _currentUser.DataScope;
+        var userRegionId = _currentUser.RegionId;
+        if (dataScope == 2 && userRegionId.HasValue)
+        {
+            // Tỉnh: chỉ thấy chính tỉnh mình và các xã con của tỉnh đó
+            query = query.Where(x => x.Id == userRegionId.Value || x.ParentId == userRegionId.Value);
+        }
+        else if (dataScope == 3 && userRegionId.HasValue)
+        {
+            // Xã: chỉ thấy xã mình và tỉnh mẹ của xã đó
+            var myProvinceId = await _context.Regions.AsNoTracking()
+                .Where(x => x.Id == userRegionId.Value)
+                .Select(x => x.ParentId)
+                .FirstOrDefaultAsync(cancellationToken);
+            query = query.Where(x => x.Id == userRegionId.Value || (myProvinceId.HasValue && x.Id == myProvinceId.Value));
+        }
 
         if (filter.IsActive.HasValue)
         {

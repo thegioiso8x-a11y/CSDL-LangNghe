@@ -1,4 +1,4 @@
-# ⚠️ 15 BUG ĐÃ FIX — TRÁNH LẶP LẠI
+# ⚠️ 31 BUG ĐÃ FIX — TRÁNH LẶP LẠI
 
 | # | Bug | Fix |
 |---|---|---|
@@ -29,6 +29,10 @@
 | 25 | Bản đồ xám hoặc xẹp chiều cao 0px trong Ant Form | Gọi `map.resize()` trong `setTimeout` + set `minHeight: 400px` cho container. |
 | 26 | White Screen toàn trang do AI tự đổi Named Export thành Default Export | Kiểm tra chéo bằng `grep` giữa file export và file import. |
 | 27 | Lỗi AbortError của MapLibre khi React StrictMode unmount | Bọc hàm `map.remove()` trong khối `try/catch`. |
+| 28 | Captcha Login bị lặp đuôi `= ?` (VD: "5 + 3 = ? = ?") | Bỏ hậu tố `= ?` khi render — captcha API đã trả sẵn chuỗi câu hỏi. |
+| 29 | Dashboard không lên số liệu do hàm Rebuild cũ lọc nhầm `IsEffective == 1` | Bỏ filter `IsEffective` khi tổng hợp — làng "không hiệu quả" vẫn phải cộng doanh thu/lao động. |
+| 30 | Dữ liệu năm bị thiếu do hàm Roll-up lỗi "Early Return" và không cộng dồn Tháng lên Năm | Xóa early return; roll-up SUM Tháng/Quý → Năm (`PeriodType = 3`), ưu tiên báo cáo Năm nếu đã có. |
+| 31 | API Báo cáo KPI không nhận tham số bộ lọc từ Frontend | `GetVillageStatsQuery` nhận `VillageFilterDto`; endpoint `[FromQuery]`; frontend truyền `filter` + queryKey phụ thuộc filter. |
 
 ## Nguyên tắc rút ra
 
@@ -37,3 +41,5 @@
 3. **`PagedResult` thứ tự args** phải đúng `(items, page, pageSize, total)`.
 4. **Clean Architecture:** Application chỉ dùng interface từ Domain.
 5. **Serilog ghi file** — khi debug API, xem `logs/`.
+
+
