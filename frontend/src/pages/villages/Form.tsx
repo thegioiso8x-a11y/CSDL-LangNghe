@@ -171,8 +171,8 @@ export const VillageForm: React.FC = () => {
   const geocodeMutation = useMutation({
     mutationFn: geocodeAddress,
     onSuccess: (response) => {
-      if (!response.success || !response.data) {
-        message.error(response.message ?? 'Không tìm thấy tọa độ cho địa chỉ này.')
+      if (!response.data || !response.data.latitude) {
+        message.error('Không tìm thấy tọa độ cho địa chỉ này trên bản đồ.')
         return
       }
 
@@ -210,8 +210,8 @@ export const VillageForm: React.FC = () => {
       return
     }
 
-    const fullAddress = [values.address?.trim(), commune.name, province.name]
-      .filter((part): part is string => Boolean(part))
+    const fullAddress = [values.address?.trim(), commune?.name, province?.name, 'Việt Nam']
+      .filter(Boolean)
       .join(', ')
 
     geocodeMutation.mutate(fullAddress)

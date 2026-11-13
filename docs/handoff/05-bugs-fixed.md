@@ -1,4 +1,4 @@
-# ⚠️ 31 BUG ĐÃ FIX — TRÁNH LẶP LẠI
+# ⚠️ 36 BUG ĐÃ FIX — TRÁNH LẶP LẠI
 
 | # | Bug | Fix |
 |---|---|---|
@@ -33,7 +33,11 @@
 | 29 | Dashboard không lên số liệu do hàm Rebuild cũ lọc nhầm `IsEffective == 1` | Bỏ filter `IsEffective` khi tổng hợp — làng "không hiệu quả" vẫn phải cộng doanh thu/lao động. |
 | 30 | Dữ liệu năm bị thiếu do hàm Roll-up lỗi "Early Return" và không cộng dồn Tháng lên Năm | Xóa early return; roll-up SUM Tháng/Quý → Năm (`PeriodType = 3`), ưu tiên báo cáo Năm nếu đã có. |
 | 31 | API Báo cáo KPI không nhận tham số bộ lọc từ Frontend | `GetVillageStatsQuery` nhận `VillageFilterDto`; endpoint `[FromQuery]`; frontend truyền `filter` + queryKey phụ thuộc filter. |
-
+| 32 | Import Excel lỗi CHECK constraint "CK_Villages_Code" do mã làng nghề > 5 ký tự | Nới lỏng constraint DB (cho phép 5-10 số) |
+| 33 | Import Excel lỗi FK constraint do nhập RegionCode bị parse thành Id | Thêm logic map Code -> Id trong ExcelImportService |
+| 34 | Rò rỉ dữ liệu (User Tỉnh/Xã thấy dữ liệu tỉnh khác) do Global Query Filter bị cache DataScope | Xóa Global Query Filter, dùng Extension ApplyDataScopeFilter trong tất cả Handler (gồm cả GetById) |
+| 35 | Trang danh sách làng nghề hiển thị thừa cột STT, Ảnh, tách Trạng thái/Công bố | Ẩn STT/Ảnh, gộp cột Trạng thái & Công bố |
+| 36 | Upload Frontend báo "Vui lòng chọn file" dù đã chọn | Thêm fallback originFileObj hoặc file trong mutation |
 ## Nguyên tắc rút ra
 
 1. **KHÔNG share collection** giữa 2 navigation property → EF sinh shadow FK.

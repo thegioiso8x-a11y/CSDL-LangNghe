@@ -12,7 +12,7 @@ using MediatR;
 public record GeocodeAddressQuery(string Address) : IRequest<ApiResponse<GeocodeResultDto>>;
 
 public class GeocodeAddressQueryHandler
-    : IRequestHandler<GeocodeAddressQuery, ApiResponse<GeocodeResultDto>>
+    : IRequestHandler<GeocodeAddressQuery, ApiResponse<GeocodeResultDto>?>
 {
     private readonly IGeocodingService _geocodingService;
 
@@ -21,15 +21,16 @@ public class GeocodeAddressQueryHandler
         _geocodingService = geocodingService;
     }
 
-    public async Task<ApiResponse<GeocodeResultDto>> Handle(
+    public async Task<ApiResponse<GeocodeResultDto>?> Handle(
         GeocodeAddressQuery request,
         CancellationToken cancellationToken)
     {
         var result = await _geocodingService.GeocodeAsync(request.Address, cancellationToken);
 
         if (result == null)
-            throw new NotFoundException($"Không tìm thấy tọa độ cho địa chỉ: {request.Address}", request.Address);
+            return null;
 
         return ApiResponse<GeocodeResultDto>.Ok(result);
     }
 }
+

@@ -81,6 +81,7 @@ Route `/api/v1/periodic-metrics` (**chú ý Id là `long`**):
 - ProductionProcess ∈ {Truyền thống, Hiện đại, Kết hợp}
 
 ### ✅ Import Excel (Đợt 7) — CẬP NHẬT 2026-11-05
+- **Cập nhật (2026-11-12):** Hỗ trợ nhập Mã (RegionCode) thay vì ID, tự động map sang ID khi Import.
 
 **✅ Trạng thái template (đã seed đầy đủ):**
 - DB hiện đã có **đủ 3 template** trong bảng `Import_TemplateConfig`: **V1_FULL (47 cột)**, **V1_MINIMAL (11 cột)**, **MONTHLY (7 cột)**.
@@ -127,6 +128,7 @@ Route `/api/v1/periodic-metrics` (**chú ý Id là `long`**):
 - Set `wb.properties.created/modified = datetime(2026,1,1)` — KHÔNG gán `None` (gây crash ClosedXML).
 - Backend dò Sheet có header khớp config (không lấy Sheet đầu tiên).
 ### ✅ Dashboard + Agg (Đợt 8)
+- **Cập nhật (2026-11-12):** Đã chuyển từ Global Query Filter sang Explicit Filter (ApplyDataScopeFilter) cho tất cả Query Handler (gồm cả GetById) để tránh lỗi cache EF Core.
 - Agg rebuild THỦ CÔNG qua `POST /api/v1/aggregation/rebuild` (Hangfire để sau)
 - 3 bảng Agg: VillageTimeSeries, IndustryGroupAggregate, VillageTypeAggregate
 - Dashboard: 14 chỉ tiêu (từ sheet "Đầu ra tổng")
@@ -260,3 +262,6 @@ API integration:
 - **GIS-3**: Trang `/map` hiển thị bản đồ toàn cảnh VN (center 106.299, 16.0, zoom 4.5), filter Tỉnh/Loại hình/Keyword, marker đỏ, popup thông tin.
 - **GIS-4**: `LocationPicker` trong Form Tạo/Sửa làng nghề; Nút "Tìm tọa độ tự động"; `BatchGeocodeJob` chạy Hangfire 1h sáng hàng ngày.
 - **Kiến trúc Frontend MapLibre**: Nhúng CDN vào `index.html`, dùng biến toàn cục `window.maplibregl` để triệt tiêu lỗi Vite Worker/White Screen. Ép `map.resize()` trong `setTimeout` để chống xẹp chiều cao trong Ant Form.
+
+## 🐳 Lưu ý Deploy Docker
+- Bắt buộc dùng lệnh `docker compose build --no-cache api` khi deploy có thay đổi logic Query/Bảo mật.

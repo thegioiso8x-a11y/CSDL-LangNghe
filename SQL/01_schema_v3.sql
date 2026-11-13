@@ -814,7 +814,7 @@ BEGIN
     
     INSERT INTO Sys_RolePermissions (RoleId, PermissionId)
     SELECT r.Id, p.Id FROM Sys_Roles r CROSS JOIN Sys_Permissions p
-    WHERE r.Code = 'SO_NN' AND p.Code IN ('VILLAGE.READ','VILLAGE.UPDATE','VILLAGE.APPROVE','IMPORT.UPLOAD','REPORT.VIEW','REPORT.EXPORT','AUDIT.VIEW');
+    WHERE r.Code = 'SO_NN' AND p.Code IN ('VILLAGE.READ','VILLAGE.CREATE','VILLAGE.UPDATE','VILLAGE.APPROVE','IMPORT.UPLOAD','REPORT.VIEW','REPORT.EXPORT','AUDIT.VIEW');
     
     INSERT INTO Sys_RolePermissions (RoleId, PermissionId)
     SELECT r.Id, p.Id FROM Sys_Roles r CROSS JOIN Sys_Permissions p

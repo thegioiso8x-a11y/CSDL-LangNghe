@@ -28,6 +28,9 @@ public class NominatimGeocodingService : IGeocodingService
         if (string.IsNullOrWhiteSpace(address))
             throw new BusinessException("Địa chỉ không được để trống.");
 
+        // Tuân thủ Rate Limit của Nominatim: tối đa 1 request/giây.
+        await Task.Delay(1100, ct);
+
         var url = $"https://nominatim.openstreetmap.org/search" +
                   $"?q={Uri.EscapeDataString(address)}" +
                   "&format=json" +
@@ -54,6 +57,11 @@ public class NominatimGeocodingService : IGeocodingService
                 return null;
 
             return new GeocodeResultDto(latitude, longitude, first.DisplayName, "Nominatim");
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Timeout khi geocode địa chỉ: {Address}", address);
+            throw new BusinessException("Quá thời gian chờ phản hồi từ bản đồ (Timeout). Vui lòng thử lại.");
         }
         catch (Exception ex)
         {
@@ -97,3 +105,4 @@ public class NominatimGeocodingService : IGeocodingService
         [JsonPropertyName("display_name")] public string? DisplayName { get; set; }
     }
 }
+

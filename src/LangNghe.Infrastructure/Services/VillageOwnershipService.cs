@@ -58,10 +58,16 @@ public class VillageOwnershipService : IVillageOwnershipService
                 .FirstOrDefaultAsync(r => r.Id == userRegionId, ct)
                 ?? throw new BusinessException("Xã không tồn tại");
                 
+            if (myCommune.ParentId == null)
+                throw new BusinessException("Xã không thuộc tỉnh nào");
+                
             var myProvince = await _context.Regions.AsNoTracking()
                 .FirstOrDefaultAsync(r => r.Id == myCommune.ParentId, ct)
                 ?? throw new BusinessException("Tỉnh không tồn tại");
                 
+            if (myProvince == null)
+                throw new BusinessException("Tỉnh không tồn tại");
+
             if (myProvince.RegionCode != provinceCodeInVillage)
                 throw new BusinessException($"2 số đầu mã LN phải khớp mã tỉnh ({myProvince.RegionCode})");
         }
@@ -100,3 +106,4 @@ public class VillageOwnershipService : IVillageOwnershipService
         await ValidateVillageAccessAsync(craftVillageId, ct);
     }
 }
+
