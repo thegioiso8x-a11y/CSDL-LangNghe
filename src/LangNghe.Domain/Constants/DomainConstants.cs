@@ -28,9 +28,9 @@ public static class DomainConstants
     public static class Rules
     {
         /// <summary>
-        /// Mã làng nghề phải gồm đúng 5 chữ số.
+        /// Mã làng nghề phải gồm từ 5 đến 10 chữ số.
         /// </summary>
-        public const string CraftVillageCodeRegex = @"^\d{5}$";
+        public const string CraftVillageCodeRegex = @"^\d{5,10}$";
 
         /// <summary>
         /// Mức cho phép lỗi tối đa khi Import Excel là 10%.

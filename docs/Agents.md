@@ -328,7 +328,7 @@ public class CreateVillageValidator : AbstractValidator<CreateVillageDto>
     {
         RuleFor(x => x.VillageCode)
             .NotEmpty().WithMessage("Mã làng nghề bắt buộc")
-            .Matches(@"^\d{5}$").WithMessage("Mã làng nghề phải có 5 chữ số");
+            .Matches(@"^\d{5,10}$").WithMessage("Mã làng nghề phải có từ 5 đến 10 chữ số");
 
         RuleFor(x => x.Name)
             .NotEmpty().MaximumLength(500);

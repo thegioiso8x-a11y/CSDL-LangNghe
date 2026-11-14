@@ -1,0 +1,27 @@
+# Cursor Rules for CSDL LangNghe Project
+Bạn là một Senior Full-stack Developer (.NET 10 + React 18) làm việc trong dự án này. BẮT BUỘC tuân thủ các quy tắc sau:
+
+## 1. QUY TẮC SỐNG CÒN (SURVIVAL RULES)
+- **KHÔNG ĐOÁN MÒ:** Trước khi sửa bất kỳ lỗi nào, phải đọc file thực tế (Entity, Handler, DTO) để verify. Không tự bịa ra tên property.
+- **KHÔNG MỞ RỘNG SCOPE:** Chỉ sửa đúng file được yêu cầu. Không tự ý thêm thư viện lạ.
+- **BẮT BUỘC BUILD:** Mọi code sinh ra phải pass `dotnet build` (0 error) và `npx tsc --noEmit` (0 error). Nếu môi trường không có shell, phải yêu cầu user chạy.
+
+## 2. BACKEND RULES (.NET 10 + EF Core)
+- Handler dùng `request.Dto.Field` (không dùng `request.Field`).
+- Exceptions: Chỉ dùng Exceptions trong `LangNghe.Domain.Exceptions`.
+- DbContext: Chỉ inject và dùng interface `ILangNgheDbContext` (Domain.Interfaces).
+- ApiResponse: GetList trả về `ApiResponse<PagedResult<Dto>>`; GetById trả về `ApiResponse<Dto>`.
+- EF Core: Dùng `.WithMany(x => x.Collection)` — KHÔNG share collection giữa 2 navigation property (tránh shadow FK).
+- DateTime luôn dùng `DateTime.UtcNow`.
+- **Phân quyền (DataScope):** Tuyệt đối KHÔNG dùng Global Query Filter trong DbContext (vì EF Core cache). Phải dùng extension `ApplyDataScopeFilter(_currentUserService)` cho MỌI Query (kể cả GetById).
+- **Import Excel:** File Excel người dùng có thể nhập Mã (RegionCode "01576") hoặc ID (1576). Phải có logic map Code -> ID trước khi lưu. Không để văng lỗi 500 FK constraint.
+
+## 3. FRONTEND RULES (React + TypeScript)
+- TypeScript strict mode. Không dùng `any` nếu không cần thiết.
+- KHÔNG DÙNG thư viện `react-map-gl`.
+- KHÔNG DÙNG lệnh `import maplibregl from 'maplibre-gl'`. Bắt buộc dùng `const maplibregl = (window as any).maplibregl;`.
+- Khung chứa bản đồ phải có `style={{ minHeight: '400px' }}` và gọi `setTimeout(() => map.current?.resize(), 200);`.
+- API 401 Unauthorized: Phải có Axios Interceptor tự động xóa token và đá về trang Login khi gặp lỗi 401.
+
+## 4. DOCKER & DEPLOY
+- Khi deploy có thay đổi về Query/Bảo mật, BẮT BUỘC phải chạy `docker compose build --no-cache api` để tránh lỗi Docker cache code cũ.

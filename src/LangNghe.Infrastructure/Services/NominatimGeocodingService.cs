@@ -28,6 +28,39 @@ public class NominatimGeocodingService : IGeocodingService
         if (string.IsNullOrWhiteSpace(address))
             throw new BusinessException("Địa chỉ không được để trống.");
 
+        // Lần 1: thử với địa chỉ đầy đủ
+        var result = await SearchAsync(address, ct);
+        if (result != null)
+            return result;
+
+        // Fallback: nếu địa chỉ có >= 3 phần (VD: "Đại Áng, Thanh Trì, Hà Nội, Việt Nam")
+        // thì thử lại với chuỗi rút gọn (2 phần tử cuối: "Hà Nội, Việt Nam").
+        var parts = address
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .ToArray();
+
+        if (parts.Length >= 3)
+        {
+            var fallbackAddress = string.Join(", ", parts.Skip(parts.Length - 2));
+            _logger.LogInformation(
+                "Geocode lần 1 thất bại, thử fallback: {Fallback} (gốc: {Address})",
+                fallbackAddress, address);
+
+            result = await SearchAsync(fallbackAddress, ct);
+            if (result != null)
+                return result;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Gọi Nominatim search cho 1 chuỗi địa chỉ. Trả null nếu không tìm thấy.
+    /// Có áp dụng Rate Limit 1 request/giây trước mỗi lần gọi.
+    /// </summary>
+    private async Task<GeocodeResultDto?> SearchAsync(string address, CancellationToken ct)
+    {
         // Tuân thủ Rate Limit của Nominatim: tối đa 1 request/giây.
         await Task.Delay(1100, ct);
 
@@ -105,4 +138,3 @@ public class NominatimGeocodingService : IGeocodingService
         [JsonPropertyName("display_name")] public string? DisplayName { get; set; }
     }
 }
-

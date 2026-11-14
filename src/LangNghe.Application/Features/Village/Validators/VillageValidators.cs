@@ -9,7 +9,7 @@ public class CreateVillageValidator : AbstractValidator<CreateVillageDto>
     {
         RuleFor(x => x.VillageCode)
             .NotEmpty()
-            .Matches(@"^\d{5}$").WithMessage("Mã làng nghề phải có đúng 5 chữ số");
+            .Matches(@"^\d{5,10}$").WithMessage("Mã làng nghề phải có từ 5 đến 10 chữ số (Ví dụ: 01001)");
 
         RuleFor(x => x.Name)
             .NotEmpty()
@@ -46,7 +46,7 @@ public class UpdateVillageValidator : AbstractValidator<UpdateVillageDto>
     {
         RuleFor(x => x.VillageCode)
             .NotEmpty()
-            .Matches(@"^\d{5}$").WithMessage("Mã làng nghề phải có đúng 5 chữ số");
+            .Matches(@"^\d{5,10}$").WithMessage("Mã làng nghề phải có từ 5 đến 10 chữ số (Ví dụ: 01001)");
 
         RuleFor(x => x.Name)
             .NotEmpty()

@@ -42,6 +42,36 @@ import LocationPicker from '../../components/common/LocationPicker'
 
 const { Title } = Typography
 
+/**
+ * Làm sạch chuỗi địa chỉ trước khi gửi Nominatim:
+ * - Bỏ các tiền tố hành chính thừa ("Xã ", "Phường ", "Thị trấn ", "Huyện ", "Quận ", "Thành phố ", "Tỉnh ").
+ * - Bỏ dấu ngoặc đơn, ngoặc kép.
+ * - Gộp khoảng trắng thừa.
+ */
+const cleanAddressText = (text?: string | null): string => {
+  if (!text) return ''
+  let result = text
+  // Bỏ dấu ngoặc đơn / ngoặc kép
+  result = result.replace(/[()"'“”‘’]/g, ' ')
+  // Bỏ tiền tố hành chính (không phân biệt hoa/thường, ở đầu chuỗi hoặc sau dấu phẩy)
+  const prefixes = [
+    'Thành phố',
+    'Thị trấn',
+    'Thị xã',
+    'Phường',
+    'Huyện',
+    'Quận',
+    'Tỉnh',
+    'Xã',
+  ]
+  for (const prefix of prefixes) {
+    const regex = new RegExp(`(^|,\\s*)${prefix}\\s+`, 'gi')
+    result = result.replace(regex, '$1')
+  }
+  // Gộp khoảng trắng thừa và trim
+  return result.replace(/\s+/g, ' ').trim()
+}
+
 interface FormValues {
   villageCode: string
   name: string
@@ -210,8 +240,26 @@ export const VillageForm: React.FC = () => {
       return
     }
 
-    const fullAddress = [values.address?.trim(), commune?.name, province?.name, 'Việt Nam']
-      .filter(Boolean)
+    // Làm sạch địa chỉ người dùng nhập (bỏ tiền tố hành chính, ngoặc kép...)
+    let addressClean = cleanAddressText(values.address)
+    const communeClean = cleanAddressText(commune.name)
+    const provinceClean = cleanAddressText(province.name)
+
+    // Tránh lặp: nếu user đã gõ tên Xã/Tỉnh vào ô địa chỉ thì cắt bỏ
+    if (communeClean) {
+      addressClean = addressClean.replace(new RegExp(communeClean, 'gi'), '')
+    }
+    if (provinceClean) {
+      addressClean = addressClean.replace(new RegExp(provinceClean, 'gi'), '')
+    }
+    // Dọn lại dấu phẩy/khoảng trắng thừa sau khi cắt
+    addressClean = addressClean
+      .replace(/\s*,\s*/g, ', ')
+      .replace(/^[,\s]+|[,\s]+$/g, '')
+      .trim()
+
+    const fullAddress = [addressClean, communeClean, provinceClean, 'Việt Nam']
+      .filter((part) => Boolean(part))
       .join(', ')
 
     geocodeMutation.mutate(fullAddress)
@@ -316,14 +364,14 @@ export const VillageForm: React.FC = () => {
               rules={[
                 { required: true, message: 'Vui lòng nhập mã làng nghề' },
                 {
-                  pattern: /^\d{5}$/,
-                  message: 'Mã làng nghề phải có đúng 5 chữ số (Ví dụ: 00001, 10123)',
+                  pattern: /^\d{5,10}$/,
+                  message: 'Mã làng nghề phải có từ 5 đến 10 chữ số (Ví dụ: 01001)',
                 },
               ]}
             >
               <Input
-                placeholder="Nhập đúng 5 chữ số (Ví dụ: 00001)"
-                maxLength={5}
+                placeholder="Nhập từ 5 đến 10 chữ số (Ví dụ: 01001)"
+                maxLength={10}
                 disabled={isEdit}
               />
             </Form.Item>

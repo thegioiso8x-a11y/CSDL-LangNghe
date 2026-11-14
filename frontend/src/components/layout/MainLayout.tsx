@@ -7,7 +7,6 @@ import {
   ShoppingOutlined,
   UserOutlined,
   LineChartOutlined,
-  EditOutlined,
   AuditOutlined,
   UploadOutlined,
   HistoryOutlined,
@@ -63,19 +62,22 @@ export const MainLayout: React.FC = () => {
           ),
         }]
       : []),
-    {
-      key: 'categories',
-      icon: <AppstoreOutlined />,
-      label: 'Danh mục',
-      children: [
-        { key: '/village-types', label: 'Loại hình làng nghề' },
-        { key: '/industry-groups', label: 'Nhóm ngành nghề' },
-        { key: '/output-units', label: 'Đơn vị tính sản lượng' },
-        { key: '/export-categories', label: 'Mặt hàng xuất khẩu' },
-        { key: '/classifications', label: 'Phân loại làng nghề' },
-        { key: '/regions', label: 'Địa bàn hành chính' },
-      ],
-    },
+    // Cụm "Danh mục" chỉ hiển thị cho user cấp TW (DataScope = 1)
+    ...(user?.dataScope === 1
+      ? [{
+          key: 'categories',
+          icon: <AppstoreOutlined />,
+          label: 'Danh mục',
+          children: [
+            { key: '/village-types', label: 'Loại hình làng nghề' },
+            { key: '/industry-groups', label: 'Nhóm ngành nghề' },
+            { key: '/output-units', label: 'Đơn vị tính sản lượng' },
+            { key: '/export-categories', label: 'Mặt hàng xuất khẩu' },
+            { key: '/classifications', label: 'Phân loại làng nghề' },
+            { key: '/regions', label: 'Địa bàn hành chính' },
+          ],
+        }]
+      : []),
     { key: '/villages', icon: <HomeOutlined />, label: 'Làng nghề' },
     { key: '/products', icon: <ShoppingOutlined />, label: 'Sản phẩm' },
     { key: '/artisans', icon: <UserOutlined />, label: 'Nghệ nhân' },
@@ -85,7 +87,7 @@ export const MainLayout: React.FC = () => {
       icon: <AuditOutlined />,
       label: 'Nháp & Trình duyệt',
       children: [
-        { key: '/drafts', icon: <EditOutlined />, label: 'Nháp của tôi' },
+        // Ẩn "Nháp của tôi" — tính năng chưa hoàn thiện
         { key: '/submissions', label: 'Trình duyệt' },
         { key: '/submissions/pending', label: 'Chờ duyệt' },
       ],
@@ -199,3 +201,4 @@ export const MainLayout: React.FC = () => {
 }
 
 export default MainLayout
+

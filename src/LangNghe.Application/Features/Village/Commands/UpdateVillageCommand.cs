@@ -50,9 +50,9 @@ public class UpdateVillageCommandHandler : IRequestHandler<UpdateVillageCommand,
                 throw new BusinessException("Mã làng nghề đã tồn tại");
             }
 
-            if (!Regex.IsMatch(dto.VillageCode, @"^\d{5}$"))
+            if (!Regex.IsMatch(dto.VillageCode, @"^\d{5,10}$"))
             {
-                throw new BusinessException("Mã làng nghề phải có đúng 5 chữ số");
+                throw new BusinessException("Mã làng nghề phải có từ 5 đến 10 chữ số (Ví dụ: 01001)");
             }
         }
 

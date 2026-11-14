@@ -34,10 +34,10 @@ public class CreateVillageCommandHandler : IRequestHandler<CreateVillageCommand,
             throw new BusinessException("Mã làng nghề đã tồn tại");
         }
 
-        // 2. Validate regex ^\d{5}$
-        if (!Regex.IsMatch(dto.VillageCode, @"^\d{5}$"))
+        // 2. Validate regex ^\d{5,10}$
+        if (!Regex.IsMatch(dto.VillageCode, @"^\d{5,10}$"))
         {
-            throw new BusinessException("Mã làng nghề phải có đúng 5 chữ số");
+            throw new BusinessException("Mã làng nghề phải có từ 5 đến 10 chữ số (Ví dụ: 01001)");
         }
 
         // 3. Ownership check
